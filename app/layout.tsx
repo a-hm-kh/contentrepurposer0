@@ -7,32 +7,36 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "ContentRepurposer — One article, three platforms",
+    default: "ContentRepurposer — خطة نشر متكاملة من قطعة محتوى واحدة",
     template: "%s — ContentRepurposer",
   },
   description:
-    "Paste an article, blog post, or long text and instantly get a LinkedIn post, an X (Twitter) thread, and an Instagram caption. Your first 10 generations are free — no signup required.",
+    "حوّل قطعة محتوى واحدة إلى خطة نشر متكاملة باسلوبك الخاص مع نتائج جاهزة للتعديل والنشر: لينكدإن، إكس، إنستغرام، فيسبوك، افتتاحيات جذابة، ودعوة للتفاعل. أول 10 توليدات مجانية.",
   applicationName: "ContentRepurposer",
   keywords: [
+    "تحويل المحتوى",
+    "منشور لينكدإن",
+    "سلسلة تويتر",
+    "كابشن إنستغرام",
+    "خطة نشر",
     "content repurposing",
     "LinkedIn post generator",
     "Twitter thread generator",
     "Instagram caption generator",
     "AI copywriting",
-    "micro saas",
   ],
-  authors: [{ name: "ContentRepurposer" }],
+  authors: [{ name: "Ahmad Khalil" }],
   openGraph: {
-    title: "ContentRepurposer — One article, three platforms",
+    title: "ContentRepurposer — خطة نشر متكاملة من قطعة محتوى واحدة",
     description:
-      "Turn one long-form piece into a LinkedIn post, an X thread, and an Instagram caption in seconds.",
+      "من مقال أو سكريبت فيديو واحد إلى حزمة منشورات جاهزة للنشر على كل المنصات، مع مراجعة ذكية وخطة أسبوعية.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ContentRepurposer — One article, three platforms",
+    title: "ContentRepurposer — خطة نشر متكاملة من قطعة محتوى واحدة",
     description:
-      "Turn one long-form piece into a LinkedIn post, an X thread, and an Instagram caption in seconds.",
+      "من مقال أو سكريبت فيديو واحد إلى حزمة منشورات جاهزة للنشر على كل المنصات.",
   },
 };
 
@@ -46,7 +50,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="ar" dir="rtl" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

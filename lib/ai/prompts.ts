@@ -1,77 +1,171 @@
 import type { RepurposedContent } from "@/lib/types";
 
 /**
- * The single source of truth for prompting.
- * Every provider (Groq → Gemini → OpenAI) receives these EXACT messages,
- * so a fallback produces identical output quality/shape.
+ * The single source of truth for prompting (v2).
+ * Every provider receives these EXACT messages, so a fallback produces
+ * identical output quality/shape.
  */
 
-/**
- * JSON Schema handed to Google Gemini via `responseSchema`
- * (Gemini requires uppercase type enums).
- */
 export const GEMINI_RESPONSE_SCHEMA = {
   type: "OBJECT",
   properties: {
     linkedin: { type: "STRING" },
     twitter_thread: { type: "ARRAY", items: { type: "STRING" } },
     instagram: { type: "STRING" },
+    facebook: { type: "STRING" },
+    hooks: { type: "ARRAY", items: { type: "STRING" } },
+    cta: { type: "STRING" },
+    videoPromotions: { type: "ARRAY", items: { type: "STRING" } },
+    videoTitles: { type: "ARRAY", items: { type: "STRING" } },
+    shortIdeas: { type: "ARRAY", items: { type: "STRING" } },
+    reviewCheck: {
+      type: "OBJECT",
+      properties: {
+        matchesOriginal: { type: "BOOLEAN" },
+        confidence: { type: "NUMBER" },
+        notes: { type: "STRING" },
+      },
+      required: ["matchesOriginal", "confidence", "notes"],
+    },
   },
-  required: ["linkedin", "twitter_thread", "instagram"],
-  propertyOrdering: ["linkedin", "twitter_thread", "instagram"],
+  required: [
+    "linkedin",
+    "twitter_thread",
+    "instagram",
+    "facebook",
+    "hooks",
+    "cta",
+    "videoPromotions",
+    "videoTitles",
+    "shortIdeas",
+    "reviewCheck",
+  ],
 } as const;
 
-export const SYSTEM_PROMPT = `You are a world-class social media copywriter and content strategist.
+const TONE_LABELS_AR: Record<string, string> = {
+  balanced: "متوازن (طبيعي واحترافي)",
+  formal: "رسمي",
+  casual: "عفوي وقريب من الناس",
+  marketing: "تسويقي يحفّز على الشراء",
+  educational: "تعليمي يشرح ويبسّط",
+  professional: "احترافي مؤسسي",
+  friendly: "ودود ودافئ",
+  persuasive: "إقناعي وحججي",
+  concise: "مختصر ومركّز",
+};
 
-You will receive one piece of long-form content (an article, blog post, or raw text).
-Repurpose it into three platform-specific formats and return ONLY a valid JSON object
-— no markdown fences, no commentary, no explanation.
+const TONE_LABELS_EN: Record<string, string> = {
+  balanced: "balanced (natural and professional)",
+  formal: "formal",
+  casual: "casual and relatable",
+  marketing: "marketing driven",
+  educational: "educational and explanatory",
+  professional: "corporate professional",
+  friendly: "friendly and warm",
+  persuasive: "persuasive and argumentative",
+  concise: "concise and focused",
+};
 
-The JSON object MUST have exactly these keys:
+function buildSystemPrompt(language: string, tone: string): string {
+  const isArabic = language === "ar";
+  const toneLabel = isArabic
+    ? TONE_LABELS_AR[tone] || tone
+    : TONE_LABELS_EN[tone] || tone;
 
-1. "linkedin" (string)
-   - A complete LinkedIn post in the voice of the original author.
-   - Structure: a scroll-stopping first line (the hook, no hashtags on it), a blank line,
-     2-4 short punchy paragraphs (2-3 sentences each, lots of white space),
-     then a clear call-to-action question or invitation to comment.
-   - Professional but human tone. Line breaks between paragraphs. No hashtags unless the
-     source explicitly uses them (max 3, placed at the very end).
+  if (isArabic) {
+    return `أنت كاتب محتوى عالمي وخبير استراتيجي في السوشيال ميديا.
 
-2. "twitter_thread" (array of strings)
-   - 5-9 tweets that tell the same story as a thread.
-   - Tweet 1 must be a standalone hook that makes people click "show more".
-   - Every tweet must be ≤ 280 characters.
-   - Do NOT number the tweets ("1/") — numbering is added by the UI.
-   - Final tweet: a short summary + call-to-action to follow/reply.
+ستتلقى قطعة محتوى طويلة (مقال، سكريبت فيديو، نشرة، أو نص محادثة).
+مهمتك: إعادة صياغة هذا المحتوى إلى حزمة منشورات جاهزة للنشر مع الالتزام التام بالفكرة الأصلية.
 
-3. "instagram" (string)
-   - A conversational, scroll-stopping caption with a hook on the first line.
-   - Natural, relevant emojis (not spammy), short lines with line breaks,
-     a question to drive comments, then 5-10 niche-relevant hashtags on the final line.
+⚠️ قواعد حاسمة للحفاظ على صدق المحتوى (CRITICAL):
+- لا تخترع أي حقائق أو أرقام أو إحصائيات أو أفكار غير موجودة في النص الأصلي إطلاقاً.
+- حافظ على الرسالة الجوهرية والاستنتاجات كما هي تماماً.
+- مهمتك إعادة الهيكلة والتكييف لكل منصة، وليس ابتكار محتوى جديد.
+- لا تذكر أبداً أن هذا المحتوى أعيد صياغته أو تم توليده بالذكاء الاصطناعي.
 
-Ground rules:
-- Preserve the original facts, numbers, names, and opinions. NEVER invent statistics.
-- Never mention that the content was repurposed, generated, or written by AI.
-- Keep the author's core message intact while adapting tone per platform.
-- Output STRICT JSON only. If in doubt, output the JSON object and nothing else.`;
+نبرة الكتابة المطلوبة: ${toneLabel}
+لغة الإخراج: العربية الفصحى المبسطة (مفهومة لكل العرب).
 
-export function buildMessages(text: string): { role: "system" | "user"; content: string }[] {
+أعد JSON صالح فقط، بدون أي شرح أو علامات markdown، بهذا الشكل بالضبط:
+
+{
+  "linkedin": "منشور لينكدإن كامل: افتتاحية توقف التمرير، ثم سطور قصيرة متباعدة، ثم دعوة واضحة للتفاعل",
+  "twitter_thread": ["تغريدة 1", "تغريدة 2", "... 5 إلى 9 تغريدات، كل واحدة 280 حرفاً كحد أقصى، بدون ترقيم"],
+  "instagram": "كابشن إنستغرام محادثة مع إيموجي مناسب، سؤال للتفاعل، و5-10 هاشتاقات في آخر سطر",
+  "facebook": "منشور فيسبوك ودود وقابل للمشاركة مع سؤال للتفاعل",
+  "hooks": ["خمس افتتاحيات جذابة مختلفة تماماً مستخرجة من نفس فكرة النص"],
+  "cta": "دعوة واحدة مقنعة للتفاعل مناسبة لكل المنصات",
+  "videoPromotions": ["ثلاث منشورات ترويجية للفيديو (أو للمحتوى كفيديو قصير)"],
+  "videoTitles": ["خمس عناوين بديلة جذابة للمحتوى"],
+  "shortIdeas": ["أربع أفكار لمقاطع قصيرة (ريلز / تيك توك / يوتيوب شورتس) مبنية على نفس المحتوى"],
+  "reviewCheck": {
+    "matchesOriginal": true,
+    "confidence": 0.95,
+    "notes": "ملاحظة قصيرة توضح مدى مطابقة النصوص للفكرة الأصلية وعدم إضافة أفكار جديدة"
+  }
+}
+
+تذكير: JSON فقط، وبدون أي نص إضافي.`;
+  }
+
+  return `You are a world-class social media copywriter and content strategist.
+
+You will receive one piece of long-form content (article, video script, newsletter, or transcript).
+Repurpose it into a complete package of platform-ready posts while staying strictly faithful to the source.
+
+⚠️ CRITICAL CONTENT INTEGRITY RULES:
+- Do NOT invent facts, numbers, statistics, or ideas not present in the original text.
+- Preserve the core message and conclusions exactly.
+- Your job is RESTRUCTURING and ADAPTING, not creating new content.
+- Never mention that the content was repurposed or AI-generated.
+
+WRITING TONE: ${toneLabel}
+OUTPUT LANGUAGE: English (unless the source is clearly another language, then match it).
+
+Return ONLY valid JSON (no markdown fences, no commentary) with exactly these keys:
+
+{
+  "linkedin": "full LinkedIn post: scroll-stopping hook, short scannable paragraphs, clear CTA question",
+  "twitter_thread": ["tweet 1", "tweet 2", "... 5-9 tweets, each <= 280 chars, no numbering"],
+  "instagram": "conversational caption with a hook, tasteful emojis, a question, and 5-10 hashtags on the last line",
+  "facebook": "friendly, shareable Facebook post with an engagement question",
+  "hooks": ["five distinct attention-grabbing hooks drawn from the same source ideas"],
+  "cta": "one compelling call-to-action suitable across platforms",
+  "videoPromotions": ["three promotional posts for the video / short-form version"],
+  "videoTitles": ["five alternative catchy titles"],
+  "shortIdeas": ["four short-form video ideas (Reels / TikTok / YouTube Shorts)"],
+  "reviewCheck": {
+    "matchesOriginal": true,
+    "confidence": 0.95,
+    "notes": "short note on how faithfully the output matches the original without inventing ideas"
+  }
+}
+
+Remember: JSON only.`;
+}
+
+export function buildMessages(
+  text: string,
+  language = "ar",
+  tone = "balanced",
+): { role: "system" | "user"; content: string }[] {
+  const isArabic = language === "ar";
+  const userIntro = isArabic
+    ? "أعد صياغة المحتوى التالي إلى حزمة المنشورات المطلوبة (JSON فقط)."
+    : "Repurpose the following content into the requested JSON package.";
+
   return [
-    { role: "system", content: SYSTEM_PROMPT },
-    {
-      role: "user",
-      content: `Repurpose the following content into the three JSON formats requested.\n\n<content>\n${text}\n</content>`,
-    },
+    { role: "system", content: buildSystemPrompt(language, tone) },
+    { role: "user", content: `${userIntro}\n\n<content>\n${text}\n</content>` },
   ];
 }
 
-/** Thrown when a model returns something we cannot turn into content. */
+/** Kept for backward compatibility with anything importing SYSTEM_PROMPT. */
+export const SYSTEM_PROMPT = buildSystemPrompt("ar", "balanced");
+
 export class InvalidModelOutputError extends Error {}
 
-/**
- * Robustly parse model output into `RepurposedContent`.
- * Handles: code fences, leading prose, stringified threads, numbering prefixes.
- */
 export function parseRepurposedContent(raw: string): RepurposedContent {
   const json = extractJson(raw);
 
@@ -95,7 +189,35 @@ export function parseRepurposedContent(raw: string): RepurposedContent {
     throw new InvalidModelOutputError("The AI returned empty content.");
   }
 
-  return { linkedin, twitter_thread: twitter, instagram };
+  const facebook = toBlock(obj.facebook) || linkedin;
+  const hooks = toArray(obj.hooks ?? obj.hookIdeas);
+  const cta = toBlock(obj.cta) || "";
+  const videoPromotions = toArray(obj.videoPromotions ?? obj.video_promotions);
+  const videoTitles = toArray(obj.videoTitles ?? obj.video_titles);
+  const shortIdeas = toArray(obj.shortIdeas ?? obj.short_ideas);
+
+  const reviewRaw = obj.reviewCheck ?? obj.review_check;
+  const reviewCheck =
+    typeof reviewRaw === "object" && reviewRaw !== null
+      ? {
+          matchesOriginal: Boolean((reviewRaw as Record<string, unknown>).matchesOriginal),
+          confidence: Number((reviewRaw as Record<string, unknown>).confidence) || 0,
+          notes: String((reviewRaw as Record<string, unknown>).notes ?? ""),
+        }
+      : undefined;
+
+  return {
+    linkedin,
+    twitter_thread: twitter,
+    instagram,
+    facebook,
+    hooks,
+    cta,
+    videoPromotions: videoPromotions.length ? videoPromotions : undefined,
+    videoTitles: videoTitles.length ? videoTitles : undefined,
+    shortIdeas: shortIdeas.length ? shortIdeas : undefined,
+    reviewCheck,
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -105,14 +227,11 @@ export function parseRepurposedContent(raw: string): RepurposedContent {
 function extractJson(raw: string): string {
   let text = (raw ?? "").trim();
 
-  // Strip ```json ... ``` fences (with or without a language tag).
   const fence = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   if (fence?.[1]) text = fence[1].trim();
 
-  // Fast path.
   if (text.startsWith("{") && text.endsWith("}")) return text;
 
-  // Slow path: pull the outermost object out of surrounding prose.
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start !== -1 && end > start) return text.slice(start, end + 1);
@@ -132,19 +251,15 @@ function toArray(value: unknown): string[] {
   if (Array.isArray(value)) {
     items = value.map((v) => String(v).trim());
   } else if (typeof value === "string" && value.trim()) {
-    // Model returned one big string — split it into tweets.
     items = splitThreadIntoTweets(value);
   }
 
-  // Models love adding "1." / "2)" prefixes even when told not to — strip them
-  // because the UI renders its own numbering.
   return items
     .map((item) => item.replace(/^\s*\d+\s*[/.)-]\s*/, "").trim())
     .filter(Boolean);
 }
 
 function splitThreadIntoTweets(text: string): string[] {
-  // Preferred delimiter: a line containing only --- or •••
   if (/^\s*(?:---+|•{2,}|~{3})\s*$/m.test(text)) {
     return text
       .split(/^\s*(?:---+|•{2,}|~{3})\s*$/m)
@@ -152,7 +267,6 @@ function splitThreadIntoTweets(text: string): string[] {
       .filter(Boolean);
   }
 
-  // Fallback: blank-line separated blocks.
   return text
     .split(/\n{2,}/)
     .map((t) => t.trim())

@@ -26,7 +26,7 @@ const VARIANT_CLASSES: Record<NonNullable<CopyButtonProps["variant"]>, string> =
 
 export function CopyButton({
   text,
-  label = "Copy to clipboard",
+  label = "نسخ",
   variant = "ghost",
   className = "",
 }: CopyButtonProps) {
@@ -72,7 +72,7 @@ export function CopyButton({
       ) : (
         <CopyIcon className="h-4 w-4" />
       )}
-      <span>{isCopied ? "Copied!" : isError ? "Copy failed — select manually" : label}</span>
+      <span>{isCopied ? "تم النسخ" : isError ? "فشل النسخ — انسخ يدوياً" : label}</span>
     </button>
   );
 }

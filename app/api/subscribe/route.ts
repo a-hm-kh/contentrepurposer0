@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const rateLimit = checkRateLimit(`sub:${clientKeyFrom(req.headers)}`);
   if (!rateLimit.ok) {
     return NextResponse.json(
-      { ok: false, error: "Too many attempts. Please wait a minute." },
+      { ok: false, error: "محاولات كثيرة. حاول بعد دقيقة." },
       { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
     );
   }
@@ -28,13 +28,13 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return fail("We couldn't read that request.", 400);
+    return fail("تعذّر قراءة الطلب.", 400);
   }
 
   const email = typeof body.email === "string" ? body.email.trim() : "";
 
   if (!email || email.length > 254 || !EMAIL_REGEX.test(email)) {
-    return fail("Please enter a valid email address.");
+    return fail("الرجاء إدخال بريد إلكتروني صحيح.");
   }
 
   // 3. Store (deduped) ----------------------------------------------------
@@ -47,8 +47,8 @@ export async function POST(req: Request) {
     ok: true,
     isNew,
     message: isNew
-      ? "You're on the list — we'll email you about updates and new features."
-      : "You're already on the list — nothing else to do!",
+      ? "تم تسجيلك — سنراسلك بكل جديد."
+      : "أنت مسجّل بالفعل — لا حاجة لفعل شيء آخر!",
   });
 }
 

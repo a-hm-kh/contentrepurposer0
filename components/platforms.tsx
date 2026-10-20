@@ -1,13 +1,14 @@
 import type { ReactElement } from "react";
 
 import {
+  FacebookIcon,
   InstagramIcon,
   LinkedInIcon,
   XIcon,
 } from "@/components/icons";
 import type { RepurposedContent } from "@/lib/types";
 
-export type PlatformId = keyof RepurposedContent;
+export type PlatformId = "linkedin" | "twitter_thread" | "instagram" | "facebook";
 
 export interface PlatformMeta {
   id: PlatformId;
@@ -63,9 +64,26 @@ export const PLATFORMS: Record<PlatformId, PlatformMeta> = {
     glyph: "text-[#DD2A7B]",
     Icon: (props) => <InstagramIcon {...props} />,
   },
+  facebook: {
+    id: "facebook",
+    label: "Facebook Post",
+    short: "Facebook",
+    destination: "Facebook feed · shareable",
+    tagline: "Shareable post",
+    description:
+      "A warm, conversational post built to spark comments and shares, faithful to your original idea.",
+    tile: "bg-[#1877F2]/10",
+    glyph: "text-[#1877F2]",
+    Icon: (props) => <FacebookIcon {...props} />,
+  },
 };
 
 /** Render order across the UI. */
-export const PLATFORM_ORDER: PlatformId[] = ["linkedin", "twitter_thread", "instagram"];
+export const PLATFORM_ORDER: PlatformId[] = [
+  "linkedin",
+  "twitter_thread",
+  "instagram",
+  "facebook",
+];
 
 export const PLATFORM_LIST = PLATFORM_ORDER.map((id) => PLATFORMS[id]);

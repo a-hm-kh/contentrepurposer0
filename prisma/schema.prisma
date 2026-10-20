@@ -1,0 +1,337 @@
+// Prisma Schema for ContentRepurposer
+// Full production schema with auth, quotas, billing, audit logs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ========================================
+// Authentication (Auth.js v5)
+// ========================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(USER)
+  language      String    @default("ar")
+  timezone      String    @default("Asia/Riyadh")
+
+  accounts      Account[]
+  sessions      Session[]
+
+  subscription  Subscription?
+  usage         UsageQuota?
+  generations   Generation[]
+  modifications Modification[]
+  weeklyPlans   WeeklyPlan[]
+  auditLogs     AuditLog[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ========================================
+// Subscriptions & Billing (Lemon Squeezy)
+// ========================================
+
+model Subscription {
+  id                      String             @id @default(cuid())
+  userId                  String             @unique
+  user                    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lemonSqueezyId          String?            @unique
+  lemonSqueezyCustomerId  String?
+  lemonSqueezyOrderId     String?
+  lemonSqueezyProductId   String?
+  lemonSqueezyVariantId   String?
+  lemonSqueezySubscriptionId String?         @unique
+
+  status                  SubscriptionStatus @default(FREE)
+  plan                    PlanType           @default(FREE)
+
+  priceId                 String?
+  price                   Decimal?           @db.Decimal(10, 2)
+  currency                String             @default("USD")
+
+  currentPeriodStart      DateTime?
+  currentPeriodEnd        DateTime?
+  cancelAtPeriodEnd       Boolean            @default(false)
+  canceledAt              DateTime?
+  endedAt                 DateTime?
+  trialEndsAt             DateTime?
+
+  renewsAt                DateTime?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+
+  @@index([status])
+  @@index([lemonSqueezySubscriptionId])
+}
+
+enum SubscriptionStatus {
+  FREE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELLED
+  EXPIRED
+}
+
+enum PlanType {
+  FREE
+  PRO
+}
+
+// ========================================
+// Usage & Quotas
+// ========================================
+
+model UsageQuota {
+  id                String   @id @default(cuid())
+  userId            String?  @unique
+  user              User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Free plan
+  freeGenerationsUsed Int     @default(0)
+  freeGenerationsLimit Int     @default(10)
+  freeLifetimeUsed   Boolean  @default(false)
+
+  // Pro plan (daily resets)
+  proGenerationsUsed Int      @default(0)
+  proGenerationsLimit Int     @default(20)
+  proModificationsUsed Int    @default(0)
+  proModificationsLimit Int   @default(20)
+  lastProResetAt     DateTime @default(now())
+
+  // Anonymous tracking (for non-logged users)
+  anonymousId        String?  @unique
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([anonymousId])
+}
+
+// ========================================
+// Generations & Content Storage
+// ========================================
+
+model Generation {
+  id                String   @id @default(cuid())
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  anonymousId       String?
+
+  // Input
+  inputText         String   @db.Text
+  inputType         InputType @default(ARTICLE)
+  language          String   @default("ar")
+  tone              String   @default("balanced")
+  targetPlatforms   String[] @default(["linkedin", "twitter", "instagram", "facebook"])
+
+  // Generated Output
+  linkedinPost      String   @db.Text
+  twitterThread     Json
+  instagramCaption  String   @db.Text
+  facebookPost      String   @db.Text
+  hooks             Json
+  cta               String   @db.Text
+
+  // Video script specific
+  videoPromotions   Json?
+  videoTitles       Json?
+  shortIdeas        Json?
+
+  // AI metadata
+  provider          String?
+  model             String?
+  reviewPassed      Boolean  @default(false)
+  reviewNotes       String?  @db.Text
+
+  // Usage tracking
+  generationTime    Int?
+  ipAddress         String?  @db.VarChar(45)
+  userAgent         String?  @db.Text
+
+  modifications     Modification[]
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+  @@index([anonymousId])
+  @@index([createdAt])
+  @@index([ipAddress])
+}
+
+enum InputType {
+  ARTICLE
+  VIDEO_SCRIPT
+  BLOG_POST
+  NEWSLETTER
+  TRANSCRIPT
+}
+
+model Modification {
+  id           String     @id @default(cuid())
+  generationId String
+  generation   Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  type         ModificationType
+  instruction  String?    @db.Text
+  platform     String?
+  inputText    String?    @db.Text
+  resultText   String     @db.Text
+
+  ipAddress    String?    @db.VarChar(45)
+  createdAt    DateTime   @default(now())
+
+  @@index([generationId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum ModificationType {
+  SHORTEN
+  MORE_PERSUASIVE
+  CHANGE_HOOK
+  SIMPLIFY
+  THREE_VARIANTS
+  CHANGE_TONE
+  CUSTOM
+}
+
+// ========================================
+// Weekly Publishing Plan
+// ========================================
+
+model WeeklyPlan {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  title       String
+  inputText   String   @db.Text
+  language    String   @default("ar")
+
+  planData    Json     // Array of 7 days with platform, type, topic, time
+  exportData  Json?    // Formatted for export
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ========================================
+// Admin Audit & Monitoring
+// ========================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action      String
+  category    AuditCategory
+  details     Json?
+  ipAddress   String?  @db.VarChar(45)
+  userAgent   String?  @db.Text
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+enum AuditCategory {
+  AUTH
+  GENERATION
+  PAYMENT
+  ADMIN
+  SECURITY
+  USAGE
+}
+
+// ========================================
+// System Analytics (Admin Only)
+// ========================================
+
+model SiteAnalytics {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now()) @db.Date
+  uniqueVisitors  Int      @default(0)
+  pageViews       Int      @default(0)
+  generations     Int      @default(0)
+  modifications   Int      @default(0)
+  signups         Int      @default(0)
+  subscriptions   Int      @default(0)
+  revenue         Decimal? @db.Decimal(10, 2)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([date])
+  @@index([date])
+}
