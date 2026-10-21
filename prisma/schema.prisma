@@ -315,6 +315,30 @@ enum AuditCategory {
 }
 
 // ========================================
+// Webhook Idempotency
+// ========================================
+
+/**
+ * Records every Lemon Squeezy webhook event id we have processed.
+ *
+ * Lemon Squeezy guarantees at-least-once delivery, so the same event can be
+ * retried. The unique `eventId` turns a duplicate into a no-op, preventing a
+ * replayed `subscription_created` from silently re-granting Pro access.
+ */
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  eventName   String
+  source      String   @default("lemonsqueezy")
+  testMode    Boolean  @default(false)
+  payload     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([eventName])
+  @@index([createdAt])
+}
+
+// ========================================
 // System Analytics (Admin Only)
 // ========================================
 

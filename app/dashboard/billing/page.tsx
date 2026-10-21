@@ -6,6 +6,8 @@ import { CheckoutButton } from "@/components/billing/CheckoutButton";
 import { CheckIcon, LogoMark } from "@/components/icons";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db";
+import { fetchCustomerPortalUrl } from "@/lib/lemonsqueezy/client";
+import { syncSubscriptionFromLemonSqueezy } from "@/lib/lemonsqueezy/sync";
 import { resolveQuota } from "@/lib/utils/quota";
 
 export const metadata: Metadata = {
@@ -39,18 +41,45 @@ function formatDate(value: Date | null | undefined): string {
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{ checkout?: string; subscription_id?: string; order_id?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
   const params = await searchParams;
+
+  /*
+   * Self-healing activation.
+   *
+   * Lemon Squeezy returns the customer here straight after payment, appending
+   * `order_id` / `subscription_id` to the redirect URL. The webhook normally
+   * activates the plan within seconds, but webhooks can be delayed or dropped.
+   * When that happens we confirm the purchase directly with the API so a paying
+   * customer is never left on the free plan.
+   */
+  if (params.checkout === "success") {
+    await syncSubscriptionFromLemonSqueezy({
+      userId: session.user.id,
+      subscriptionId: params.subscription_id ?? null,
+      orderId: params.order_id ?? null,
+    }).catch((err) => {
+      console.warn("[billing] could not sync subscription from Lemon Squeezy:", err);
+    });
+  }
+
   const [subscription, quota] = await Promise.all([
     prisma.subscription.findUnique({ where: { userId: session.user.id } }),
     resolveQuota(),
   ]);
 
   const isPro = subscription?.plan === "PRO" && subscription?.status === "ACTIVE";
+
+  // Self-service billing portal (update card / cancel). Fetched only for live
+  // Pro customers, and only when we hold a subscription id to look it up with.
+  const portalUrl =
+    isPro && subscription?.lemonSqueezySubscriptionId
+      ? await fetchCustomerPortalUrl(subscription.lemonSqueezySubscriptionId).catch(() => null)
+      : null;
 
   return (
     <div className="min-h-dvh bg-neutral-50/50">
@@ -150,9 +179,20 @@ export default async function BillingPage({
 
             <div className="mt-6">
               {isPro ? (
-                <p className="rounded-xl bg-white/10 px-4 py-3 text-center text-[13px] text-white/80">
-                  Your subscription is active. Thanks for your support!
-                </p>
+                portalUrl ? (
+                  <a
+                    href={portalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-on-dark btn-lg w-full"
+                  >
+                    Manage subscription
+                  </a>
+                ) : (
+                  <p className="rounded-xl bg-white/10 px-4 py-3 text-center text-[13px] text-white/80">
+                    Your subscription is active. Thanks for your support!
+                  </p>
+                )
               ) : quota?.plan === "admin" ? (
                 <p className="rounded-xl bg-white/10 px-4 py-3 text-center text-[13px] text-white/80">
                   Not needed — admin accounts are unlimited.

@@ -32,6 +32,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payments are not configured on the server yet." }, { status: 503 });
   }
 
+  /*
+   * Guard against double-charging. A customer who already has a live
+   * subscription must not be pushed through checkout again — that would bill
+   * them twice. They manage or cancel from the Lemon Squeezy customer portal
+   * instead.
+   */
+  const existing = await prisma.subscription.findUnique({
+    where: { userId: session.user.id },
+    select: { plan: true, status: true },
+  });
+
+  const alreadySubscribed =
+    existing?.plan === "PRO" &&
+    existing.status !== "EXPIRED" &&
+    existing.status !== "CANCELLED";
+
+  if (alreadySubscribed) {
+    return NextResponse.json(
+      {
+        error:
+          "You already have an active Pro subscription. Manage it from your billing portal.",
+        code: "already_subscribed",
+      },
+      { status: 409 },
+    );
+  }
+
   try {
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL?.trim() ||
