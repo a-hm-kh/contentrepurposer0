@@ -17,16 +17,9 @@ interface CopyButtonProps {
   className?: string;
 }
 
-const VARIANT_CLASSES: Record<NonNullable<CopyButtonProps["variant"]>, string> = {
-  solid:
-    "bg-neutral-950 text-white hover:bg-neutral-800 focus-visible:ring-neutral-950/25",
-  ghost:
-    "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:text-neutral-950 focus-visible:ring-neutral-950/20",
-};
-
 export function CopyButton({
   text,
-  label = "نسخ",
+  label = "Copy",
   variant = "ghost",
   className = "",
 }: CopyButtonProps) {
@@ -54,25 +47,23 @@ export function CopyButton({
   const isCopied = state === "copied";
   const isError = state === "error";
 
+  const stateClasses = isCopied
+    ? "border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-[var(--shadow-control)]"
+    : isError
+      ? "border border-red-200 bg-red-50 text-red-700 shadow-[var(--shadow-control)]"
+      : variant === "solid"
+        ? "btn-primary"
+        : "btn-secondary";
+
   return (
     <button
       type="button"
       onClick={handleCopy}
       aria-live="polite"
-      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-        isCopied
-          ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-          : isError
-            ? "border border-red-200 bg-red-50 text-red-700"
-            : VARIANT_CLASSES[variant]
-      } ${className}`}
+      className={`btn btn-sm ${stateClasses} ${className}`}
     >
-      {isCopied ? (
-        <CheckIcon className="h-4 w-4" />
-      ) : (
-        <CopyIcon className="h-4 w-4" />
-      )}
-      <span>{isCopied ? "تم النسخ" : isError ? "فشل النسخ — انسخ يدوياً" : label}</span>
+      {isCopied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />}
+      <span>{isCopied ? "Copied" : isError ? "Copy failed — copy manually" : label}</span>
     </button>
   );
 }

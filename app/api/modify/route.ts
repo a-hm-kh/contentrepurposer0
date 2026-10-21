@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   const rateLimit = checkRateLimit(clientKeyFrom(req.headers));
   if (!rateLimit.ok) {
     return NextResponse.json(
-      { ok: false, error: `محاولات كثيرة. انتظر ${rateLimit.retryAfterSeconds} ثانية.`, code: "rate_limited" },
+      { ok: false, error: `Too many requests. Please wait ${rateLimit.retryAfterSeconds} seconds.`, code: "rate_limited" },
       { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
     );
   }
@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
         ok: false,
         error:
           quota?.plan === "pro"
-            ? `لقد استهلكت ${quota.modificationsLimit} تعديلاً لهذا اليوم. تتجدد تلقائياً خلال 24 ساعة.`
-            : "لقد استهلكت حصّتك المجانية. الاشتراك في Pro يمنحك 20 تعديلاً يومياً.",
+            ? `You have used all ${quota.modificationsLimit} edits for today. Your allowance refreshes automatically within 24 hours.`
+            : "You have used your free allowance. The Pro plan gives you 20 edits per day.",
         code: "limit_reached",
       },
       { status: 402 },
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "تعذّر قراءة الطلب.", code: "bad_request" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Could not read the request.", code: "bad_request" }, { status: 400 });
   }
 
   const type = isModificationType(body.type) ? body.type : "CUSTOM";
@@ -78,13 +78,13 @@ export async function POST(req: NextRequest) {
 
   if (!content) {
     return NextResponse.json(
-      { ok: false, error: "لا يوجد نص لتعديله.", code: "invalid_input" },
+      { ok: false, error: "There is no text to edit.", code: "invalid_input" },
       { status: 400 },
     );
   }
   if (content.length > 20_000) {
     return NextResponse.json(
-      { ok: false, error: "النص طويل جداً للتعديل.", code: "invalid_input" },
+      { ok: false, error: "That text is too long to edit.", code: "invalid_input" },
       { status: 413 },
     );
   }
@@ -141,6 +141,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: err.message, code: "ai_unavailable" }, { status: 502 });
     }
     console.error("[api/modify] unexpected error:", err);
-    return NextResponse.json({ ok: false, error: "فشل التعديل. حاول مرة أخرى.", code: "bad_request" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "The edit failed. Please try again.", code: "bad_request" }, { status: 500 });
   }
 }

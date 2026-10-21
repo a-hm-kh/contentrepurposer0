@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { SpinnerIcon } from "@/components/icons";
 
-export function CheckoutButton({ label = "الاشتراك في Pro الآن" }: { label?: string }) {
+export function CheckoutButton({ label = "Upgrade to Pro now" }: { label?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,13 +16,13 @@ export function CheckoutButton({ label = "الاشتراك في Pro الآن" }:
       const payload = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
 
       if (!res.ok || !payload?.url) {
-        setError(payload?.error ?? "تعذّر بدء عملية الدفع. حاول مرة أخرى.");
+        setError(payload?.error ?? "Could not start checkout. Please try again.");
         return;
       }
 
       window.location.href = payload.url;
     } catch {
-      setError("تعذّر الوصول إلى الخادم. تحقّق من اتصالك بالإنترنت.");
+      setError("Could not reach the server. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -35,11 +35,11 @@ export function CheckoutButton({ label = "الاشتراك في Pro الآن" }:
         onClick={() => void startCheckout()}
         disabled={loading}
         aria-busy={loading}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-on-dark btn-lg w-full"
       >
         {loading ? (
           <>
-            <SpinnerIcon className="h-4 w-4" /> جاري التحويل…
+            <SpinnerIcon className="h-4 w-4" /> Redirecting…
           </>
         ) : (
           label

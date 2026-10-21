@@ -6,6 +6,7 @@ import { config } from "@/lib/config";
 import { prisma } from "@/lib/db";
 import { checkRateLimit, clientKeyFrom } from "@/lib/rate-limit";
 import { getUid } from "@/lib/store";
+import { detectLanguage } from "@/lib/utils/language";
 import { resolveQuota } from "@/lib/utils/quota";
 
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   const rateLimit = checkRateLimit(clientKeyFrom(req.headers));
   if (!rateLimit.ok) {
     return NextResponse.json(
-      { ok: false, error: `محاولات كثيرة. انتظر ${rateLimit.retryAfterSeconds} ثانية.` },
+      { ok: false, error: `Too many requests. Please wait ${rateLimit.retryAfterSeconds} seconds.` },
       { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
     );
   }
@@ -27,25 +28,25 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "تعذّر قراءة الطلب." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Could not read the request." }, { status: 400 });
   }
 
   const text = typeof body.text === "string" ? body.text.trim() : "";
-  const language = body.language === "en" ? "en" : "ar";
+  const language = detectLanguage(text);
   const tone = typeof body.tone === "string" && body.tone.trim() ? body.tone.trim().slice(0, 32) : "balanced";
 
   if (!text) {
-    return NextResponse.json({ ok: false, error: "الرجاء لصق المحتوى أولاً." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Please paste your content first." }, { status: 400 });
   }
   if (text.length < config.minInputChars) {
     return NextResponse.json(
-      { ok: false, error: `النص قصير جداً — الصق ${config.minInputChars} حرفاً على الأقل.` },
+      { ok: false, error: `That text is too short — paste at least ${config.minInputChars} characters.` },
       { status: 400 },
     );
   }
   if (text.length > config.maxInputChars) {
     return NextResponse.json(
-      { ok: false, error: `النص طويل جداً (الحد ${config.maxInputChars.toLocaleString()} حرف).` },
+      { ok: false, error: `That text is too long (limit ${config.maxInputChars.toLocaleString()} characters).` },
       { status: 413 },
     );
   }
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
       await prisma.weeklyPlan.create({
         data: {
           userId,
-          title: language === "ar" ? "خطة النشر الأسبوعية" : "Weekly publishing plan",
+          title: "Weekly publishing plan",
           inputText: text,
           language,
           planData: result.days as unknown as object,
@@ -88,6 +89,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: err.message }, { status: 502 });
     }
     console.error("[api/weekly-plan] unexpected error:", err);
-    return NextResponse.json({ ok: false, error: "فشل في إنشاء الخطة. حاول مرة أخرى." }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Could not build the plan. Please try again." }, { status: 500 });
   }
 }

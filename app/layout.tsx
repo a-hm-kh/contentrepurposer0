@@ -7,36 +7,34 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "ContentRepurposer — خطة نشر متكاملة من قطعة محتوى واحدة",
+    default: "ContentRepurposer — One article, a full publishing plan",
     template: "%s — ContentRepurposer",
   },
   description:
-    "حوّل قطعة محتوى واحدة إلى خطة نشر متكاملة باسلوبك الخاص مع نتائج جاهزة للتعديل والنشر: لينكدإن، إكس، إنستغرام، فيسبوك، افتتاحيات جذابة، ودعوة للتفاعل. أول 10 توليدات مجانية.",
+    "Turn one piece of content into a complete publishing plan in your own voice, with results ready to edit and publish: LinkedIn, X, Instagram, Facebook, scroll-stopping hooks and a call to action. First 10 generations free.",
   applicationName: "ContentRepurposer",
   keywords: [
-    "تحويل المحتوى",
-    "منشور لينكدإن",
-    "سلسلة تويتر",
-    "كابشن إنستغرام",
-    "خطة نشر",
     "content repurposing",
     "LinkedIn post generator",
     "Twitter thread generator",
     "Instagram caption generator",
+    "Facebook post generator",
+    "publishing plan",
     "AI copywriting",
+    "video script to posts",
   ],
   authors: [{ name: "Ahmad Khalil" }],
   openGraph: {
-    title: "ContentRepurposer — خطة نشر متكاملة من قطعة محتوى واحدة",
+    title: "ContentRepurposer — One article, a full publishing plan",
     description:
-      "من مقال أو سكريبت فيديو واحد إلى حزمة منشورات جاهزة للنشر على كل المنصات، مع مراجعة ذكية وخطة أسبوعية.",
+      "From one article or video script to a ready-to-publish bundle for every platform, with a smart review layer and a weekly plan.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ContentRepurposer — خطة نشر متكاملة من قطعة محتوى واحدة",
+    title: "ContentRepurposer — One article, a full publishing plan",
     description:
-      "من مقال أو سكريبت فيديو واحد إلى حزمة منشورات جاهزة للنشر على كل المنصات.",
+      "One article or video script in, a ready-to-publish bundle for every platform out.",
   },
 };
 
@@ -50,7 +48,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="ar" dir="rtl" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html
+      lang="en"
+      dir="ltr"
+      data-scroll-behavior="smooth"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+    >
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

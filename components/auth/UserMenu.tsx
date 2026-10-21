@@ -12,6 +12,12 @@ interface UserMenuProps {
   signOutAction: () => Promise<void>;
 }
 
+const MENU_ITEMS = [
+  { href: "/dashboard", label: "Studio" },
+  { href: "/weekly-plan", label: "Weekly plan" },
+  { href: "/dashboard/billing", label: "Billing & plan" },
+];
+
 export function UserMenu({ name, email, image, isAdmin, signOutAction }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -46,7 +52,7 @@ export function UserMenu({ name, email, image, isAdmin, signOutAction }: UserMen
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_10px_40px_-15px_rgba(10,10,10,0.3)]"
+          className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[var(--shadow-overlay)]"
         >
           <div className="border-b border-neutral-100 px-4 py-3">
             {name && <p className="truncate text-[13px] font-semibold text-neutral-900">{name}</p>}
@@ -54,18 +60,23 @@ export function UserMenu({ name, email, image, isAdmin, signOutAction }: UserMen
           </div>
 
           <div className="py-1">
-            <Link href="/dashboard" role="menuitem" className="block px-4 py-2 text-[13px] text-neutral-700 transition hover:bg-neutral-50">
-              استوديو التحويل
-            </Link>
-            <Link href="/weekly-plan" role="menuitem" className="block px-4 py-2 text-[13px] text-neutral-700 transition hover:bg-neutral-50">
-              خطة النشر الأسبوعية
-            </Link>
-            <Link href="/dashboard/billing" role="menuitem" className="block px-4 py-2 text-[13px] text-neutral-700 transition hover:bg-neutral-50">
-              الاشتراك والفواتير
-            </Link>
+            {MENU_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                role="menuitem"
+                className="block px-4 py-2 text-[13px] text-neutral-700 transition hover:bg-neutral-50"
+              >
+                {item.label}
+              </Link>
+            ))}
             {isAdmin && (
-              <Link href="/admin/dashboard" role="menuitem" className="block px-4 py-2 text-[13px] text-neutral-700 transition hover:bg-neutral-50">
-                لوحة الإدارة
+              <Link
+                href="/admin/dashboard"
+                role="menuitem"
+                className="block px-4 py-2 text-[13px] text-neutral-700 transition hover:bg-neutral-50"
+              >
+                Admin dashboard
               </Link>
             )}
           </div>
@@ -74,9 +85,9 @@ export function UserMenu({ name, email, image, isAdmin, signOutAction }: UserMen
             <button
               type="submit"
               role="menuitem"
-              className="block w-full px-4 py-2 text-right text-[13px] text-neutral-700 transition hover:bg-neutral-50"
+              className="block w-full px-4 py-2 text-left text-[13px] text-neutral-700 transition hover:bg-neutral-50"
             >
-              تسجيل الخروج
+              Sign out
             </button>
           </form>
         </div>

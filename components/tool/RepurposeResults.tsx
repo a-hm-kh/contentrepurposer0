@@ -7,13 +7,13 @@ import { ModifyButtons } from "@/components/ui/ModifyButtons";
 import type { RepurposedContent } from "@/lib/types";
 
 const MODIFY_LABELS: Record<string, string> = {
-  SHORTEN: "اختصر النص",
-  MORE_PERSUASIVE: "اجعله أكثر إقناعاً",
-  CHANGE_HOOK: "غير الافتتاحية",
-  SIMPLIFY: "أعد الكتابة بأسهل",
-  THREE_VARIANTS: "أنشئ 3 نسخ مختلفة",
-  CHANGE_TONE: "غير النبرة",
-  CUSTOM: "تعديل مخصص",
+  SHORTEN: "Shorten",
+  MORE_PERSUASIVE: "More persuasive",
+  CHANGE_HOOK: "New hook",
+  SIMPLIFY: "Simpler rewrite",
+  THREE_VARIANTS: "3 variants",
+  CHANGE_TONE: "Change tone",
+  CUSTOM: "Custom edit",
 };
 
 export interface ModifyRequest {
@@ -52,22 +52,22 @@ function Card({ title, badge, children, copyText, onApply, onModify }: CardProps
     setBusy(null);
 
     if (!result) {
-      setNote("تعذّر التعديل. تحقّق من حصّتك أو حاول مرة أخرى.");
+      setNote("Could not apply the edit. Check your quota or try again.");
       return;
     }
 
     if (type === "THREE_VARIANTS" && result.variants.length) {
       setVariants(result.variants);
-      setNote("ثلاث نسخ جاهزة — اختر ما يعجبك.");
+      setNote("Three variants ready — pick the one you like.");
       return;
     }
 
     onApply?.(result.text);
-    setNote(`تم تطبيق «${MODIFY_LABELS[type] ?? type}».`);
+    setNote(`Applied “${MODIFY_LABELS[type] ?? type}”.`);
   }
 
   return (
-    <article className="flex flex-col rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(10,10,10,0.04)]">
+    <article className="surface flex flex-col">
       <header className="flex items-center justify-between gap-2 border-b border-neutral-100 px-4 py-3">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold tracking-tight text-neutral-900">{title}</h3>
@@ -79,15 +79,11 @@ function Card({ title, badge, children, copyText, onApply, onModify }: CardProps
         </div>
         <div className="flex items-center gap-1">
           {onModify && (
-            <button
-              type="button"
-              onClick={() => setShowModify((v) => !v)}
-              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
-            >
-              تعديل
+            <button type="button" onClick={() => setShowModify((v) => !v)} className="btn btn-ghost btn-sm">
+              Edit
             </button>
           )}
-          <CopyButton variant="ghost" label="نسخ" text={copyText} />
+          <CopyButton variant="ghost" label="Copy" text={copyText} />
         </div>
       </header>
 
@@ -99,20 +95,20 @@ function Card({ title, badge, children, copyText, onApply, onModify }: CardProps
             {variants.map((variant, i) => (
               <div key={i} className="rounded-xl border border-neutral-200 bg-neutral-50/60 p-3">
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="font-mono text-[11px] text-neutral-400">نسخة {i + 1}</span>
+                  <span className="font-mono text-[11px] text-neutral-400">Variant {i + 1}</span>
                   <div className="flex items-center gap-1">
-                    <CopyButton variant="ghost" label="نسخ" text={variant} />
+                    <CopyButton variant="ghost" label="Copy" text={variant} />
                     {onApply && (
                       <button
                         type="button"
                         onClick={() => {
                           onApply(variant);
                           setVariants(null);
-                          setNote("تم اعتماد النسخة.");
+                          setNote("Variant applied.");
                         }}
-                        className="rounded-lg px-2.5 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50"
+                        className="btn btn-ghost btn-sm text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                       >
-                        اعتماد
+                        Use this
                       </button>
                     )}
                   </div>
@@ -126,7 +122,8 @@ function Card({ title, badge, children, copyText, onApply, onModify }: CardProps
         {showModify && onModify && (
           <div className="mt-4 border-t border-neutral-100 pt-4">
             <p className="mb-2 text-[11px] font-medium text-neutral-500">
-              عدّل بدون إعادة توليد الحزمة كاملة — كل تعديل محسوب من حصّتك
+              Edit without regenerating the whole bundle — every edit counts
+              against your quota
             </p>
             <ModifyButtons onModify={handleModify} disabled={busy !== null} busyType={busy} />
             {note && <p className="mt-2 text-[11px] text-emerald-600">{note}</p>}
@@ -158,6 +155,8 @@ function List({ items, ordered }: { items: string[]; ordered?: boolean }) {
   );
 }
 
+const EMPTY_CARDS = ["LinkedIn", "X thread", "Instagram", "Facebook"];
+
 export function RepurposeResults({
   result,
   isLoading,
@@ -182,12 +181,12 @@ export function RepurposeResults({
   if (!result) {
     return (
       <div className="grid gap-5 lg:grid-cols-2">
-        {["لينكدإن", "سلسلة إكس", "إنستغرام", "فيسبوك"].map((label) => (
+        {EMPTY_CARDS.map((label) => (
           <div
             key={label}
             className="flex h-56 items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/40 text-sm text-neutral-400"
           >
-            {label} — سيظهر هنا بعد التوليد
+            {label} — appears here after generating
           </div>
         ))}
       </div>
@@ -213,12 +212,12 @@ export function RepurposeResults({
           </span>
           <div>
             <p className="font-semibold">
-              مراجعة ذكية:{" "}
+              Smart review:{" "}
               {result.reviewCheck.matchesOriginal
-                ? "المحتوى مطابق للفكرة الأصلية"
-                : "تحذير: قد يكون هناك انحراف بسيط عن الأصل"}
+                ? "the output matches your original idea"
+                : "warning: there may be a slight drift from the source"}
               {result.reviewCheck.confidence > 0 &&
-                ` · الثقة ${(result.reviewCheck.confidence * 100).toFixed(0)}%`}
+                ` · ${(result.reviewCheck.confidence * 100).toFixed(0)}% confidence`}
             </p>
             {result.reviewCheck.notes && (
               <p className="mt-0.5 opacity-80">{result.reviewCheck.notes}</p>
@@ -229,8 +228,8 @@ export function RepurposeResults({
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card
-          title="لينكدإن"
-          badge="منشور كامل"
+          title="LinkedIn"
+          badge="Full post"
           copyText={result.linkedin}
           onApply={(next) => onUpdate?.({ linkedin: next })}
           onModify={onModify}
@@ -239,8 +238,8 @@ export function RepurposeResults({
         </Card>
 
         <Card
-          title="إكس (تويتر)"
-          badge={`${result.twitter_thread?.length ?? 0} تغريدات`}
+          title="X (Twitter)"
+          badge={`${result.twitter_thread?.length ?? 0} posts`}
           copyText={(result.twitter_thread ?? []).map((t, i) => `${i + 1}/ ${t}`).join("\n\n")}
           onApply={(next) =>
             onUpdate?.({ twitter_thread: next.split(/\n{2,}/).map((t) => t.replace(/^\d+\/\s*/, "").trim()).filter(Boolean) })
@@ -251,7 +250,7 @@ export function RepurposeResults({
             {(result.twitter_thread ?? []).map((tweet, i) => (
               <li key={i} className="rounded-xl border border-neutral-100 bg-neutral-50/50 p-3">
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="font-mono text-[11px] text-neutral-400">تغريدة {i + 1}</span>
+                  <span className="font-mono text-[11px] text-neutral-400">Post {i + 1}</span>
                   <span className={`font-mono text-[10px] ${tweet.length > 280 ? "text-red-500" : "text-neutral-400"}`}>
                     {tweet.length}/280
                   </span>
@@ -262,40 +261,40 @@ export function RepurposeResults({
           </ol>
         </Card>
 
-        <Card title="إنستغرام" badge="كابشن + هاشتاقات" copyText={result.instagram} onApply={(next) => onUpdate?.({ instagram: next })} onModify={onModify}>
+        <Card title="Instagram" badge="Caption + hashtags" copyText={result.instagram} onApply={(next) => onUpdate?.({ instagram: next })} onModify={onModify}>
           <Paragraphs text={result.instagram} />
         </Card>
 
-        <Card title="فيسبوك" badge="منشور" copyText={result.facebook ?? ""} onApply={(next) => onUpdate?.({ facebook: next })} onModify={onModify}>
+        <Card title="Facebook" badge="Post" copyText={result.facebook ?? ""} onApply={(next) => onUpdate?.({ facebook: next })} onModify={onModify}>
           <Paragraphs text={result.facebook ?? ""} />
         </Card>
 
         {result.hooks?.length ? (
-          <Card title="افتتاحيات جذابة" badge={`${result.hooks.length}`} copyText={result.hooks.join("\n\n")} onModify={onModify}>
+          <Card title="Scroll-stopping hooks" badge={`${result.hooks.length}`} copyText={result.hooks.join("\n\n")} onModify={onModify}>
             <List items={result.hooks} ordered />
           </Card>
         ) : null}
 
         {result.cta ? (
-          <Card title="دعوة للتفاعل" copyText={result.cta} onApply={(next) => onUpdate?.({ cta: next })} onModify={onModify}>
+          <Card title="Call to action" copyText={result.cta} onApply={(next) => onUpdate?.({ cta: next })} onModify={onModify}>
             <Paragraphs text={result.cta} />
           </Card>
         ) : null}
 
         {result.videoTitles?.length ? (
-          <Card title="عناوين بديلة" badge={`${result.videoTitles.length}`} copyText={result.videoTitles.join("\n\n")} onModify={onModify}>
+          <Card title="Alternative titles" badge={`${result.videoTitles.length}`} copyText={result.videoTitles.join("\n\n")} onModify={onModify}>
             <List items={result.videoTitles} ordered />
           </Card>
         ) : null}
 
         {result.videoPromotions?.length ? (
-          <Card title="منشورات ترويجية للفيديو" copyText={result.videoPromotions.join("\n\n")} onModify={onModify}>
+          <Card title="Video promo posts" copyText={result.videoPromotions.join("\n\n")} onModify={onModify}>
             <List items={result.videoPromotions} />
           </Card>
         ) : null}
 
         {result.shortIdeas?.length ? (
-          <Card title="أفكار مقاطع قصيرة" badge="Reels · TikTok · Shorts" copyText={result.shortIdeas.join("\n\n")} onModify={onModify}>
+          <Card title="Short-clip ideas" badge="Reels · TikTok · Shorts" copyText={result.shortIdeas.join("\n\n")} onModify={onModify}>
             <List items={result.shortIdeas} ordered />
           </Card>
         ) : null}

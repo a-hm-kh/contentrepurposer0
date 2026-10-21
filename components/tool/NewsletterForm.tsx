@@ -59,7 +59,7 @@ export function NewsletterForm({ className = "" }: { className?: string }) {
     return (
       <div
         role="status"
-        className={`inline-flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[13px] font-medium text-emerald-800 ${className}`}
+        className={`surface inline-flex items-center gap-2.5 border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[13px] font-medium text-emerald-800 ${className}`}
       >
         <CheckIcon className="h-4 w-4 shrink-0 text-emerald-600" />
         {message}
@@ -82,14 +82,14 @@ export function NewsletterForm({ className = "" }: { className?: string }) {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
-          className="w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-[13.5px] text-neutral-900 transition placeholder:text-neutral-400 focus:border-neutral-300 focus:outline-none focus:ring-4 focus:ring-neutral-950/5 sm:w-64"
+          className="field min-w-0 sm:w-64"
         />
 
         <button
           type="submit"
           disabled={status === "loading"}
           aria-busy={status === "loading"}
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-neutral-950 px-4 py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn btn-primary btn-md shrink-0"
         >
           {status === "loading" ? (
             <SpinnerIcon className="h-3.5 w-3.5" />

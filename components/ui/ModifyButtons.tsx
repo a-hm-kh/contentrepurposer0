@@ -8,12 +8,12 @@ interface ModifyButtonsProps {
 }
 
 const ACTIONS = [
-  { type: "SHORTEN", label: "اختصر النص" },
-  { type: "MORE_PERSUASIVE", label: "اجعله أكثر إقناعاً" },
-  { type: "CHANGE_HOOK", label: "غير الافتتاحية" },
-  { type: "SIMPLIFY", label: "أعد الكتابة بأسهل" },
-  { type: "THREE_VARIANTS", label: "أنشئ 3 نسخ" },
-  { type: "CHANGE_TONE", label: "غير النبرة" },
+  { type: "SHORTEN", label: "Shorten" },
+  { type: "MORE_PERSUASIVE", label: "More persuasive" },
+  { type: "CHANGE_HOOK", label: "New hook" },
+  { type: "SIMPLIFY", label: "Simpler rewrite" },
+  { type: "THREE_VARIANTS", label: "3 variants" },
+  { type: "CHANGE_TONE", label: "Change tone" },
 ];
 
 export function ModifyButtons({ onModify, disabled, busyType }: ModifyButtonsProps) {
@@ -28,7 +28,7 @@ export function ModifyButtons({ onModify, disabled, busyType }: ModifyButtonsPro
             onClick={() => onModify(action.type)}
             disabled={disabled}
             aria-busy={busy}
-            className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn btn-secondary btn-sm"
           >
             {busy ? "…" : action.label}
           </button>

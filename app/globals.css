@@ -9,6 +9,17 @@
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
     Consolas, monospace;
 
+  /* Shared radii — keep every surface on the same scale. */
+  --radius-control: 0.75rem; /* buttons, inputs, selects */
+  --radius-card: 1rem; /* cards, panels, dropdowns */
+  --radius-pill: 9999px;
+
+  /* Shared elevation — soft, near-black, low opacity. */
+  --shadow-control: 0 1px 2px rgba(10, 10, 10, 0.04);
+  --shadow-card: 0 1px 3px rgba(10, 10, 10, 0.05), 0 1px 2px rgba(10, 10, 10, 0.03);
+  --shadow-raised: 0 12px 32px -12px rgba(10, 10, 10, 0.16);
+  --shadow-overlay: 0 24px 60px -20px rgba(10, 10, 10, 0.28);
+
   --animate-fade-up: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-fade-in: fade-in 0.35s ease-out both;
   --animate-shimmer: shimmer 1.8s linear infinite;
@@ -58,11 +69,19 @@ body {
   color: #0a0a0a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection {
   background-color: #0a0a0a;
   color: #ffffff;
+}
+
+/* Visible, consistent keyboard focus everywhere. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 2px;
+  border-radius: 0.375rem;
 }
 
 /* ------------------------------------------------------------------ */
@@ -103,4 +122,137 @@ body {
   );
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared component recipes                                            */
+/* ------------------------------------------------------------------ */
+/* Every button in the app uses one of these recipes, so corners and
+   shadows stay identical across pages without a component wrapper. */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  &:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+}
+
+@utility btn-primary {
+  background-color: #0a0a0a;
+  color: #ffffff;
+  box-shadow: var(--shadow-control);
+
+  &:hover {
+    background-color: #262626;
+    box-shadow: var(--shadow-raised);
+    transform: translateY(-1px);
+  }
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+@utility btn-secondary {
+  background-color: #ffffff;
+  color: #171717;
+  border: 1px solid #e5e5e5;
+  box-shadow: var(--shadow-control);
+
+  &:hover {
+    background-color: #fafafa;
+    border-color: #d4d4d4;
+  }
+}
+
+@utility btn-ghost {
+  background-color: transparent;
+  color: #525252;
+
+  &:hover {
+    background-color: #f5f5f5;
+    color: #0a0a0a;
+  }
+}
+
+/* Button used on dark surfaces (Pro card, dark CTA panel). Same radius and
+   elevation curve as the other variants so it never looks out of place. */
+@utility btn-on-dark {
+  background-color: #ffffff;
+  color: #0a0a0a;
+  box-shadow: var(--shadow-control);
+
+  &:hover {
+    background-color: #f5f5f5;
+    box-shadow: var(--shadow-raised);
+    transform: translateY(-1px);
+  }
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+@utility btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 0.625rem;
+}
+
+@utility btn-md {
+  padding: 0.6rem 1rem;
+}
+
+@utility btn-lg {
+  padding: 0.8rem 1.5rem;
+  font-size: 0.9375rem;
+}
+
+/* Field recipe — inputs, selects and textareas share one look. */
+@utility field {
+  width: 100%;
+  border-radius: var(--radius-control);
+  border: 1px solid #e5e5e5;
+  background-color: #ffffff;
+  padding: 0.6rem 0.875rem;
+  font-size: 0.875rem;
+  color: #0a0a0a;
+  box-shadow: var(--shadow-control);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: #a3a3a3;
+  }
+  &:focus {
+    outline: none;
+    border-color: #a3a3a3;
+    box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.06);
+  }
+  &:disabled {
+    background-color: #fafafa;
+    color: #a3a3a3;
+  }
+}
+
+/* Surface recipe — every card/panel shares corner radius + elevation. */
+@utility surface {
+  border-radius: var(--radius-card);
+  border: 1px solid #ebebeb;
+  background-color: #ffffff;
+  box-shadow: var(--shadow-card);
 }

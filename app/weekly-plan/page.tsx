@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { AlertIcon, ArrowRightIcon, LogoMark, SparklesIcon, SpinnerIcon } from "@/components/icons";
+import { AlertIcon, LogoMark, SparklesIcon, SpinnerIcon } from "@/components/icons";
 import { MAX_INPUT_CHARS, MIN_INPUT_CHARS } from "@/lib/constants";
 
 interface PlanDay {
@@ -44,7 +44,7 @@ function download(filename: string, content: string, mime: string) {
 }
 
 function toCsv(plan: PlanDay[]): string {
-  const headers = "اليوم,المنصة,نوع النشر,الموضوع,الوقت,الخطاف,الهدف\n";
+  const headers = "Day,Platform,Post type,Topic,Time,Hook,Goal\n";
   const escape = (value: string) => `"${(value ?? "").replace(/"/g, '""')}"`;
   const rows = plan
     .map((d) => [d.day, d.platform, d.type, d.topic, d.time, d.hook, d.goal].map(escape).join(","))
@@ -53,22 +53,21 @@ function toCsv(plan: PlanDay[]): string {
 }
 
 function toMarkdown(plan: PlanDay[]): string {
-  let md = "# خطة النشر الأسبوعية\n\n";
+  let md = "# Weekly publishing plan\n\n";
   plan.forEach((d, idx) => {
-    md += `## اليوم ${idx + 1}: ${d.day}\n\n`;
-    md += `- **المنصة:** ${d.platform}\n`;
-    md += `- **نوع النشر:** ${d.type}\n`;
-    md += `- **الموضوع:** ${d.topic}\n`;
-    md += `- **الوقت المقترح:** ${d.time}\n`;
-    md += `- **خطاف مقترح:** ${d.hook}\n`;
-    md += `- **الهدف:** ${d.goal}\n\n`;
+    md += `## Day ${idx + 1}: ${d.day}\n\n`;
+    md += `- **Platform:** ${d.platform}\n`;
+    md += `- **Post type:** ${d.type}\n`;
+    md += `- **Topic:** ${d.topic}\n`;
+    md += `- **Suggested time:** ${d.time}\n`;
+    md += `- **Suggested hook:** ${d.hook}\n`;
+    md += `- **Goal:** ${d.goal}\n\n`;
   });
   return md;
 }
 
 export default function WeeklyPlanPage() {
   const [text, setText] = useState("");
-  const [language, setLanguage] = useState<"ar" | "en">("ar");
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<PlanDay[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +84,7 @@ export default function WeeklyPlanPage() {
       const res = await fetch("/api/weekly-plan/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, language }),
+        body: JSON.stringify({ text }),
       });
       const payload = (await res.json().catch(() => null)) as
         | { ok: true; plan: PlanDay[] }
@@ -93,13 +92,13 @@ export default function WeeklyPlanPage() {
         | null;
 
       if (!res.ok || !payload || payload.ok !== true) {
-        setError(payload && payload.ok === false && payload.error ? payload.error : "تعذّر إنشاء الخطة. حاول مرة أخرى.");
+        setError(payload && payload.ok === false && payload.error ? payload.error : "Could not build the plan. Please try again.");
         return;
       }
 
       setPlan(payload.plan);
     } catch {
-      setError("تعذّر الوصول إلى الخادم. تحقّق من اتصالك بالإنترنت.");
+      setError("Could not reach the server. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -113,24 +112,17 @@ export default function WeeklyPlanPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-neutral-50/50" dir="rtl">
+    <div className="min-h-dvh bg-neutral-50/50">
       <header className="sticky top-0 z-40 border-b border-neutral-200/70 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950/20"
-          >
+          <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none">
             <LogoMark className="h-7 w-7" />
             <span className="text-[15px] font-semibold tracking-tight text-neutral-950">
               ContentRepurposer
             </span>
           </Link>
-          <Link
-            href="/dashboard"
-            className="mr-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-950"
-          >
-            الاستوديو
-            <ArrowRightIcon className="h-3.5 w-3.5" />
+          <Link href="/dashboard" className="btn btn-ghost btn-sm ml-auto">
+            Back to studio
           </Link>
         </div>
       </header>
@@ -138,27 +130,20 @@ export default function WeeklyPlanPage() {
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
-            خطة النشر الأسبوعية
+            Weekly publishing plan
           </h1>
           <p className="mt-2 max-w-2xl text-[15px] leading-7 text-neutral-500">
-            الصق مقالاً أو سكريبت فيديو، واحصل على خطة نشر لسبعة أيام: المنصة، نوع المنشور، الموضوع،
-            الوقت المقترح، وخطاف جاهز. تخطيط وتصدير فقط — لا نلمس حساباتك إطلاقاً.
+            Paste an article or video script and get a seven-day publishing plan:
+            platform, post type, topic, suggested time and a ready hook. Planning
+            and export only — we never touch your accounts.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-[0_1px_3px_rgba(10,10,10,0.05)] sm:p-6">
+        <div className="surface p-4 sm:p-6">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <label htmlFor="plan-text" className="text-sm font-semibold tracking-tight text-neutral-900">
-              المحتوى الأصلي
+              Your content
             </label>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as "ar" | "en")}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[13px] text-neutral-800 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-950/5"
-            >
-              <option value="ar">العربية</option>
-              <option value="en">English</option>
-            </select>
           </div>
 
           <textarea
@@ -166,9 +151,9 @@ export default function WeeklyPlanPage() {
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, MAX_INPUT_CHARS))}
             rows={8}
-            dir={language === "ar" ? "rtl" : "ltr"}
-            placeholder="الصق المقال أو السكريبت هنا…"
-            className="scrollbar-thin min-h-[180px] w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/60 px-4 py-3.5 text-[15px] leading-7 text-neutral-800 transition placeholder:text-neutral-400 focus:border-neutral-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-neutral-950/5"
+            dir="ltr"
+            placeholder="Paste your article or script here…"
+            className="field scrollbar-thin min-h-[180px] resize-y bg-neutral-50/60 leading-7 focus:bg-white"
           />
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -179,16 +164,15 @@ export default function WeeklyPlanPage() {
               type="button"
               onClick={() => void generatePlan()}
               disabled={!canGenerate}
-              aria-busy={loading}
-              className="inline-flex items-center gap-2 rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn-primary btn-lg"
             >
               {loading ? (
                 <>
-                  <SpinnerIcon className="h-4 w-4" /> جاري إنشاء الخطة…
+                  <SpinnerIcon className="h-4 w-4" /> Building the plan…
                 </>
               ) : (
                 <>
-                  <SparklesIcon className="h-4 w-4" /> اقترح خطة النشر
+                  <SparklesIcon className="h-4 w-4" /> Suggest a plan
                 </>
               )}
             </button>
@@ -205,21 +189,21 @@ export default function WeeklyPlanPage() {
         {plan && (
           <>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <span className="text-sm font-semibold text-neutral-900">تصدير الخطة:</span>
-              <button onClick={() => exportPlan("json")} className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-[13px] font-medium text-neutral-700 transition hover:bg-neutral-50">
+              <span className="text-sm font-semibold text-neutral-900">Export plan:</span>
+              <button onClick={() => exportPlan("json")} className="btn btn-secondary btn-sm">
                 JSON
               </button>
-              <button onClick={() => exportPlan("csv")} className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-[13px] font-medium text-neutral-700 transition hover:bg-neutral-50">
+              <button onClick={() => exportPlan("csv")} className="btn btn-secondary btn-sm">
                 CSV
               </button>
-              <button onClick={() => exportPlan("markdown")} className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-[13px] font-medium text-neutral-700 transition hover:bg-neutral-50">
+              <button onClick={() => exportPlan("markdown")} className="btn btn-secondary btn-sm">
                 Markdown
               </button>
             </div>
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               {plan.map((day, idx) => (
-                <article key={`${day.day}-${idx}`} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(10,10,10,0.04)]">
+                <article key={`${day.day}-${idx}`} className="surface p-5">
                   <div className="flex items-center gap-3">
                     <span className="grid h-10 w-10 place-items-center rounded-full bg-neutral-950 font-mono text-sm font-semibold text-white">
                       {idx + 1}
@@ -228,27 +212,27 @@ export default function WeeklyPlanPage() {
                       <h3 className="text-sm font-semibold tracking-tight text-neutral-950">{day.day}</h3>
                       <p className="text-xs text-neutral-500">{day.time} · {day.platform}</p>
                     </div>
-                    <span className={`mr-auto rounded-full px-2.5 py-1 text-[11px] font-medium ${platformTone(day.platform)}`}>
+                    <span className={`ml-auto rounded-full px-2.5 py-1 text-[11px] font-medium ${platformTone(day.platform)}`}>
                       {day.platform}
                     </span>
                   </div>
 
                   <dl className="mt-4 space-y-2 text-[13.5px] leading-6">
                     <div className="flex gap-2">
-                      <dt className="shrink-0 font-medium text-neutral-500">نوع النشر:</dt>
+                      <dt className="shrink-0 font-medium text-neutral-500">Post type:</dt>
                       <dd className="text-neutral-700">{day.type}</dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="shrink-0 font-medium text-neutral-500">الموضوع:</dt>
+                      <dt className="shrink-0 font-medium text-neutral-500">Topic:</dt>
                       <dd className="text-neutral-700">{day.topic}</dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="shrink-0 font-medium text-neutral-500">خطاف مقترح:</dt>
+                      <dt className="shrink-0 font-medium text-neutral-500">Suggested hook:</dt>
                       <dd className="text-neutral-700">{day.hook}</dd>
                     </div>
                     {day.goal && (
                       <div className="flex gap-2">
-                        <dt className="shrink-0 font-medium text-neutral-500">الهدف:</dt>
+                        <dt className="shrink-0 font-medium text-neutral-500">Goal:</dt>
                         <dd className="text-neutral-700">{day.goal}</dd>
                       </div>
                     )}
@@ -262,7 +246,9 @@ export default function WeeklyPlanPage() {
 
       <footer className="mx-auto max-w-6xl px-6 pb-10">
         <p className="text-xs text-neutral-400">
-          © {new Date().getFullYear()} <span className="font-medium text-neutral-600">Ahmad Khalil</span>. جميع الحقوق محفوظة.
+          © {new Date().getFullYear()}{" "}
+          <span className="font-medium text-neutral-600">Ahmad Khalil</span>.
+          All rights reserved.
         </p>
       </footer>
     </div>

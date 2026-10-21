@@ -1,5 +1,5 @@
 /**
- * The failover AI engine with language + tone support.
+ * The failover AI engine with tone support.
  */
 
 import type { ProviderName, RepurposedContent } from "@/lib/types";
@@ -25,7 +25,7 @@ export interface GenerationResult {
 export class AiUnavailableError extends Error {
   readonly failures: string[];
   constructor(failures: string[]) {
-    super("محركات الذكاء الاصطناعي مشغولة أو غير متاحة مؤقتاً. الرجاء المحاولة بعد ثوانٍ.");
+    super("The content engines are busy or temporarily unavailable. Please try again in a few seconds.");
     this.name = "AiUnavailableError";
     this.failures = failures;
   }
@@ -33,7 +33,7 @@ export class AiUnavailableError extends Error {
 
 export class AiConfigurationError extends Error {
   constructor() {
-    super("لم يتم تهيئة التوليد على هذا السيرفر بعد. أضف مفاتيح الذكاء الاصطناعي إلى الإعدادات وأعد التشغيل.");
+    super("Generation is not configured on this server yet. Add the AI keys to the environment and restart.");
     this.name = "AiConfigurationError";
   }
 }
@@ -58,40 +58,37 @@ export interface ModificationResult {
   model: string;
 }
 
-const MODIFICATION_RULES: Record<ModificationKind, { ar: string; en: string; wantsVariants: boolean }> = {
+/**
+ * Modification instructions. The output language always follows the text
+ * being edited (detected at runtime), so the rules are language-agnostic.
+ */
+const MODIFICATION_RULES: Record<ModificationKind, { rule: string; wantsVariants: boolean }> = {
   SHORTEN: {
-    ar: "اختصر النص بشكل ملحوظ مع الحفاظ على الفكرة الرئيسية وأهم النقاط فقط.",
-    en: "Shorten the text noticeably while keeping the main idea and only the key points.",
+    rule: "Shorten the text noticeably while keeping the main idea and only the key points.",
     wantsVariants: false,
   },
   MORE_PERSUASIVE: {
-    ar: "اجعل النص أكثر إقناعاً وقوة في الطرح دون إضافة أي أفكار أو حقائق جديدة.",
-    en: "Make the text more persuasive and punchier without adding any new ideas or facts.",
+    rule: "Make the text more persuasive and punchier without adding any new ideas or facts.",
     wantsVariants: false,
   },
   CHANGE_HOOK: {
-    ar: "غيّر الافتتاحية (الخطاف) فقط، واترك باقي النص كما هو دون تغيير.",
-    en: "Rewrite ONLY the opening hook and leave the rest of the text unchanged.",
+    rule: "Rewrite ONLY the opening hook and leave the rest of the text unchanged.",
     wantsVariants: false,
   },
   SIMPLIFY: {
-    ar: "أعد كتابة النص بأسلوب أبسط وأوضح بكلمات سهلة يفهمها الجميع.",
-    en: "Rewrite the text in simpler, clearer language anyone can understand.",
+    rule: "Rewrite the text in simpler, clearer language anyone can understand.",
     wantsVariants: false,
   },
   THREE_VARIANTS: {
-    ar: "أنشئ ثلاث نسخ مختلفة تماماً بنفس الفكرة والجوهر والنبرة.",
-    en: "Create three completely different versions that keep the same idea and core.",
+    rule: "Create three completely different versions that keep the same idea and core.",
     wantsVariants: true,
   },
   CHANGE_TONE: {
-    ar: "غيّر نبرة النص وفق المطلوب مع الحفاظ التام على المعنى والأفكار.",
-    en: "Change the tone as requested while preserving the meaning and ideas exactly.",
+    rule: "Change the tone as requested while preserving the meaning and ideas exactly.",
     wantsVariants: false,
   },
   CUSTOM: {
-    ar: "طبّق التعديل المطلوب مع الحفاظ التام على الفكرة الأصلية.",
-    en: "Apply the requested edit while strictly preserving the original idea.",
+    rule: "Apply the requested edit while strictly preserving the original idea.",
     wantsVariants: false,
   },
 };
@@ -156,39 +153,42 @@ function buildModificationMessages(params: {
   type: ModificationKind;
   instruction: string | null;
   platform: string | null;
-}): { messages: { role: "system" | "user"; content: string }[]; wantsVariants: boolean; isArabic: boolean } {
+}): { messages: { role: "system" | "user"; content: string }[]; wantsVariants: boolean } {
   const rule = MODIFICATION_RULES[params.type];
-  const isArabic = /[\u0600-\u06FF]/.test(params.content);
   const wantsVariants = rule.wantsVariants;
-  const ruleText = isArabic ? rule.ar : rule.en;
-  const platformNote = params.platform ? (isArabic ? `\nالمنصة: ${params.platform}` : `\nPlatform: ${params.platform}`) : "";
+  const ruleText = rule.rule;
+  const platformNote = params.platform ? `\nPlatform: ${params.platform}` : "";
   const customNote =
-    params.type === "CUSTOM" && params.instruction
-      ? isArabic
-        ? `\nطلب المستخدم: ${params.instruction}`
-        : `\nUser request: ${params.instruction}`
-      : "";
+    params.type === "CUSTOM" && params.instruction ? `\nUser request: ${params.instruction}` : "";
+
+  const languageRule =
+    "Language rule: detect the language of the text below and reply in that SAME language. Never translate it.";
 
   if (wantsVariants) {
-    const system = isArabic
-      ? `أنت محرر محتوى محترف. مهمتك إجراء تعديل محدد على نص جاهز.\nقاعدة حاسمة: لا تخترع أي أفكار أو حقائق أو أرقام غير موجودة في النص.\nالتعديل المطلوب: ${ruleText}${platformNote}${customNote}\n\nأعد JSON صالح فقط بهذا الشكل:\n{ "variants": ["نسخة 1", "نسخة 2", "نسخة 3"] }`
-      : `You are a professional content editor. Perform one specific edit on a ready text.\nHard rule: do NOT invent any ideas, facts, or numbers absent from the text.\nRequested edit: ${ruleText}${platformNote}${customNote}\n\nReturn ONLY valid JSON in this shape:\n{ "variants": ["version 1", "version 2", "version 3"] }`;
+    const system = `You are a professional content editor. Perform one specific edit on a ready text.
+Hard rule: do NOT invent any ideas, facts, or numbers absent from the text.
+${languageRule}
+Requested edit: ${ruleText}${platformNote}${customNote}
+
+Return ONLY valid JSON in this shape:
+{ "variants": ["version 1", "version 2", "version 3"] }`;
 
     return {
       messages: [{ role: "system", content: system }, { role: "user", content: params.content }],
       wantsVariants: true,
-      isArabic,
     };
   }
 
-  const system = isArabic
-    ? `أنت محرر محتوى محترف. مهمتك إجراء تعديل محدد على نص جاهز.\nقاعدة حاسمة: لا تخترع أي أفكار أو حقائق أو أرقام غير موجودة في النص، ولا تذكر أبداً أن النص معدّل.\nالتعديل المطلوب: ${ruleText}${platformNote}${customNote}\n\nأعد النص المعدّل فقط، بدون أي شرح أو علامات markdown أو عناوين.`
-    : `You are a professional content editor. Perform one specific edit on a ready text.\nHard rule: do NOT invent any ideas, facts, or numbers absent from the text, and never mention that it was edited.\nRequested edit: ${ruleText}${platformNote}${customNote}\n\nReturn ONLY the edited text — no commentary, no markdown fences, no headings.`;
+  const system = `You are a professional content editor. Perform one specific edit on a ready text.
+Hard rule: do NOT invent any ideas, facts, or numbers absent from the text, and never mention that it was edited.
+${languageRule}
+Requested edit: ${ruleText}${platformNote}${customNote}
+
+Return ONLY the edited text — no commentary, no markdown fences, no headings.`;
 
   return {
     messages: [{ role: "system", content: system }, { role: "user", content: params.content }],
     wantsVariants: false,
-    isArabic,
   };
 }
 
@@ -281,10 +281,9 @@ export interface WeeklyPlanResult {
   model: string;
 }
 
-const DAY_NAMES_AR = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const DAY_NAMES_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-function normalizeWeeklyPlan(raw: string, language: string): WeeklyPlanDay[] {
+function normalizeWeeklyPlan(raw: string): WeeklyPlanDay[] {
   const text = stripFences(raw);
   let parsed: unknown;
   try {
@@ -298,13 +297,12 @@ function normalizeWeeklyPlan(raw: string, language: string): WeeklyPlanDay[] {
 
   const obj = parsed as { days?: unknown };
   const list = Array.isArray(obj?.days) ? obj.days : Array.isArray(parsed) ? parsed : [];
-  const dayNames = language === "ar" ? DAY_NAMES_AR : DAY_NAMES_EN;
 
   const normalized = list
     .map((entry, index) => {
       const item = (entry ?? {}) as Record<string, unknown>;
       return {
-        day: String(item.day ?? dayNames[index] ?? `Day ${index + 1}`).trim(),
+        day: String(item.day ?? DAY_NAMES_EN[index] ?? `Day ${index + 1}`).trim(),
         platform: String(item.platform ?? "").trim(),
         type: String(item.type ?? "").trim(),
         topic: String(item.topic ?? "").trim(),
@@ -330,12 +328,23 @@ export async function generateWeeklyPlan(params: {
   const providers = TEXT_CHAIN.filter((step) => isConfigured(step.name));
   if (providers.length === 0) throw new AiConfigurationError();
 
-  const language = params.language === "en" ? "en" : "ar";
-  const isArabic = language === "ar";
+  const system = `You are a content and social media strategist. You'll receive one piece of content and must propose a full 7-day publishing plan.
 
-  const system = isArabic
-    ? `أنت استراتيجي محتوى وسوشيال ميديا. ستتلقى قطعة محتوى، ومهمتك اقتراح خطة نشر لأسبوع كامل (7 أيام).\n\nقواعد حاسمة:\n- اعتمد فقط على الأفكار الموجودة في المحتوى الأصلي. لا تخترع مواضيع أو حقائق جديدة.\n- وزّع الأيام على منصات مختلفة (لينكدإن، إنستغرام، إكس، فيسبوك، تيك توك، يوتيوب شورتس) بحيث لا تتكرر نفس المنصة يومين متتاليين.\n- نوّع نوع المنشور: تعليمي، قصة، نصيحة سريعة، رأي، عرض قيمة، سؤال تفاعلي، ملخص.\n- اقترح وقت نشر واقعي بصيغة 24 ساعة.\n- هذه خطة تخطيط وتصدير فقط — لا تنشر أي شيء نيابة عن المستخدم.\n\nأعد JSON صالح فقط بهذا الشكل بالضبط:\n{\n  "days": [\n    { "day": "الأحد", "platform": "LinkedIn", "type": "منشور تعليمي", "topic": "الموضوع", "time": "09:00", "hook": "خطاف مقترح", "goal": "الهدف من المنشور" }\n  ]\n}\nجاهز؟ أعد 7 أيام فقط، JSON بدون أي شرح.`
-    : `You are a content and social media strategist. You'll receive one piece of content and must propose a full 7-day publishing plan.\n\nHard rules:\n- Use ONLY ideas present in the original content. Do not invent topics or facts.\n- Spread days across different platforms (LinkedIn, Instagram, X, Facebook, TikTok, YouTube Shorts), never the same platform two days in a row.\n- Vary the post type: educational, story, quick tip, opinion, value offer, engagement question, recap.\n- Suggest a realistic 24-hour posting time.\n- This is planning and export only — you never publish on the user's behalf.\n\nReturn ONLY valid JSON in exactly this shape:\n{\n  "days": [\n    { "day": "Sunday", "platform": "LinkedIn", "type": "Educational post", "topic": "topic", "time": "09:00", "hook": "suggested hook", "goal": "post goal" }\n  ]\n}\nReturn 7 days only, JSON with no commentary.`;
+Hard rules:
+- Use ONLY ideas present in the original content. Do not invent topics or facts.
+- Detect the language of the source content and write every value in that SAME language (topic, type, hook, goal, day names too).
+- Spread days across different platforms (LinkedIn, Instagram, X, Facebook, TikTok, YouTube Shorts), never the same platform two days in a row.
+- Vary the post type: educational, story, quick tip, opinion, value offer, engagement question, recap.
+- Suggest a realistic 24-hour posting time.
+- This is planning and export only — you never publish on the user's behalf.
+
+Return ONLY valid JSON in exactly this shape:
+{
+  "days": [
+    { "day": "Sunday", "platform": "LinkedIn", "type": "Educational post", "topic": "topic", "time": "09:00", "hook": "suggested hook", "goal": "post goal" }
+  ]
+}
+Return 7 days only, JSON with no commentary.`;
 
   const messages = [
     { role: "system" as const, content: system },
@@ -347,7 +356,7 @@ export async function generateWeeklyPlan(params: {
   for (const step of providers) {
     try {
       const { raw, model } = await step.run(messages, true);
-      const days = normalizeWeeklyPlan(raw, language);
+      const days = normalizeWeeklyPlan(raw);
       return { days, provider: step.name, model };
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);

@@ -42,19 +42,7 @@ export const GEMINI_RESPONSE_SCHEMA = {
   ],
 } as const;
 
-const TONE_LABELS_AR: Record<string, string> = {
-  balanced: "متوازن (طبيعي واحترافي)",
-  formal: "رسمي",
-  casual: "عفوي وقريب من الناس",
-  marketing: "تسويقي يحفّز على الشراء",
-  educational: "تعليمي يشرح ويبسّط",
-  professional: "احترافي مؤسسي",
-  friendly: "ودود ودافئ",
-  persuasive: "إقناعي وحججي",
-  concise: "مختصر ومركّز",
-};
-
-const TONE_LABELS_EN: Record<string, string> = {
+const TONE_LABELS: Record<string, string> = {
   balanced: "balanced (natural and professional)",
   formal: "formal",
   casual: "casual and relatable",
@@ -66,48 +54,8 @@ const TONE_LABELS_EN: Record<string, string> = {
   concise: "concise and focused",
 };
 
-function buildSystemPrompt(language: string, tone: string): string {
-  const isArabic = language === "ar";
-  const toneLabel = isArabic
-    ? TONE_LABELS_AR[tone] || tone
-    : TONE_LABELS_EN[tone] || tone;
-
-  if (isArabic) {
-    return `أنت كاتب محتوى عالمي وخبير استراتيجي في السوشيال ميديا.
-
-ستتلقى قطعة محتوى طويلة (مقال، سكريبت فيديو، نشرة، أو نص محادثة).
-مهمتك: إعادة صياغة هذا المحتوى إلى حزمة منشورات جاهزة للنشر مع الالتزام التام بالفكرة الأصلية.
-
-⚠️ قواعد حاسمة للحفاظ على صدق المحتوى (CRITICAL):
-- لا تخترع أي حقائق أو أرقام أو إحصائيات أو أفكار غير موجودة في النص الأصلي إطلاقاً.
-- حافظ على الرسالة الجوهرية والاستنتاجات كما هي تماماً.
-- مهمتك إعادة الهيكلة والتكييف لكل منصة، وليس ابتكار محتوى جديد.
-- لا تذكر أبداً أن هذا المحتوى أعيد صياغته أو تم توليده بالذكاء الاصطناعي.
-
-نبرة الكتابة المطلوبة: ${toneLabel}
-لغة الإخراج: العربية الفصحى المبسطة (مفهومة لكل العرب).
-
-أعد JSON صالح فقط، بدون أي شرح أو علامات markdown، بهذا الشكل بالضبط:
-
-{
-  "linkedin": "منشور لينكدإن كامل: افتتاحية توقف التمرير، ثم سطور قصيرة متباعدة، ثم دعوة واضحة للتفاعل",
-  "twitter_thread": ["تغريدة 1", "تغريدة 2", "... 5 إلى 9 تغريدات، كل واحدة 280 حرفاً كحد أقصى، بدون ترقيم"],
-  "instagram": "كابشن إنستغرام محادثة مع إيموجي مناسب، سؤال للتفاعل، و5-10 هاشتاقات في آخر سطر",
-  "facebook": "منشور فيسبوك ودود وقابل للمشاركة مع سؤال للتفاعل",
-  "hooks": ["خمس افتتاحيات جذابة مختلفة تماماً مستخرجة من نفس فكرة النص"],
-  "cta": "دعوة واحدة مقنعة للتفاعل مناسبة لكل المنصات",
-  "videoPromotions": ["ثلاث منشورات ترويجية للفيديو (أو للمحتوى كفيديو قصير)"],
-  "videoTitles": ["خمس عناوين بديلة جذابة للمحتوى"],
-  "shortIdeas": ["أربع أفكار لمقاطع قصيرة (ريلز / تيك توك / يوتيوب شورتس) مبنية على نفس المحتوى"],
-  "reviewCheck": {
-    "matchesOriginal": true,
-    "confidence": 0.95,
-    "notes": "ملاحظة قصيرة توضح مدى مطابقة النصوص للفكرة الأصلية وعدم إضافة أفكار جديدة"
-  }
-}
-
-تذكير: JSON فقط، وبدون أي نص إضافي.`;
-  }
+function buildSystemPrompt(tone: string): string {
+  const toneLabel = TONE_LABELS[tone] || tone;
 
   return `You are a world-class social media copywriter and content strategist.
 
@@ -121,7 +69,13 @@ Repurpose it into a complete package of platform-ready posts while staying stric
 - Never mention that the content was repurposed or AI-generated.
 
 WRITING TONE: ${toneLabel}
-OUTPUT LANGUAGE: English (unless the source is clearly another language, then match it).
+OUTPUT LANGUAGE — most important rule:
+- Detect the language of the source content and write EVERY output field in that SAME language.
+- If the source is Arabic, write in natural, clear Modern Standard Arabic.
+- If the source is English, write in English.
+- If the source is Spanish, French, Turkish, Hindi, or any other language, write in that language.
+- If the source mixes languages, follow the dominant language of the source.
+- Only the JSON keys stay in English. All values must be in the source language.
 
 Return ONLY valid JSON (no markdown fences, no commentary) with exactly these keys:
 
@@ -147,22 +101,20 @@ Remember: JSON only.`;
 
 export function buildMessages(
   text: string,
-  language = "ar",
+  _language?: string,
   tone = "balanced",
 ): { role: "system" | "user"; content: string }[] {
-  const isArabic = language === "ar";
-  const userIntro = isArabic
-    ? "أعد صياغة المحتوى التالي إلى حزمة المنشورات المطلوبة (JSON فقط)."
-    : "Repurpose the following content into the requested JSON package.";
+  const userIntro =
+    "Repurpose the following content into the requested JSON package. Write every value in the same language as the content itself.";
 
   return [
-    { role: "system", content: buildSystemPrompt(language, tone) },
+    { role: "system", content: buildSystemPrompt(tone) },
     { role: "user", content: `${userIntro}\n\n<content>\n${text}\n</content>` },
   ];
 }
 
 /** Kept for backward compatibility with anything importing SYSTEM_PROMPT. */
-export const SYSTEM_PROMPT = buildSystemPrompt("ar", "balanced");
+export const SYSTEM_PROMPT = buildSystemPrompt("balanced");
 
 export class InvalidModelOutputError extends Error {}
 

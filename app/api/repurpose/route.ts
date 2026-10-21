@@ -8,6 +8,7 @@ import { checkRateLimit, clientKeyFrom } from "@/lib/rate-limit";
 import { ANONYMOUS_UID_COOKIE, getUid, newUid, uidCookieOptions } from "@/lib/store";
 import { consumeGeneration, QuotaExceededError, resolveQuota, type QuotaSnapshot } from "@/lib/utils/quota";
 import { trackGeneration } from "@/lib/analytics/tracker";
+import { detectLanguage } from "@/lib/utils/language";
 import type { InputType, RepurposeFailure, UsageInfo } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
   const rateLimit = checkRateLimit(clientKeyFrom(req.headers));
   if (!rateLimit.ok) {
     return fail(
-      `أنت تولّد بسرعة كبيرة. الرجاء الانتظار ${rateLimit.retryAfterSeconds} ثانية والمحاولة من جديد.`,
+      `You are generating too quickly. Please wait ${rateLimit.retryAfterSeconds} seconds and try again.`,
       429,
       "rate_limited",
       toUsageInfo(await resolveQuota(anonymousId)),
@@ -95,8 +96,8 @@ export async function POST(req: NextRequest) {
   if (!quota || !quota.canGenerate) {
     const message =
       quota?.plan === "pro"
-        ? `لقد استهلكت ${quota.limit} توليداً لهذا اليوم. تتجدد الحصة تلقائياً خلال 24 ساعة.`
-        : `لقد استهلكت كل ${quota?.limit ?? config.freeGenerations} توليدات مجانية. الاشتراك في Pro يمنحك 20 توليداً يومياً.`;
+        ? `You have used all ${quota.limit} generations for today. Your allowance refreshes automatically within 24 hours.`
+        : `You have used all ${quota?.limit ?? config.freeGenerations} free generations. The Pro plan gives you 20 generations per day.`;
 
     return fail(message, 402, "limit_reached", toUsageInfo(quota));
   }
@@ -112,20 +113,22 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return fail("تعذّر قراءة الطلب. الرجاء المحاولة مرة أخرى.", 400, "bad_request", toUsageInfo(quota));
+    return fail("Could not read the request. Please try again.", 400, "bad_request", toUsageInfo(quota));
   }
 
   const text = typeof body?.text === "string" ? sanitizeText(body.text) : "";
-  const language = body?.language === "en" ? "en" : "ar";
+  // The output language always follows the language of the pasted text, so we
+  // detect it here just to record it — never to force a translation.
+  const language = detectLanguage(text);
   const tone = typeof body?.tone === "string" && body.tone.trim() ? body.tone.trim().slice(0, 32) : "balanced";
   const inputType = normalizeInputType(body?.inputType);
 
   if (!text) {
-    return fail("الرجاء لصق مقال أو نص أولاً.", 400, "invalid_input", toUsageInfo(quota));
+    return fail("Please paste an article or some text first.", 400, "invalid_input", toUsageInfo(quota));
   }
   if (text.length < config.minInputChars) {
     return fail(
-      `النص قصير جداً — الصق ${config.minInputChars} حرفاً على الأقل.`,
+      `That text is too short — paste at least ${config.minInputChars} characters.`,
       400,
       "invalid_input",
       toUsageInfo(quota),
@@ -133,7 +136,7 @@ export async function POST(req: NextRequest) {
   }
   if (text.length > config.maxInputChars) {
     return fail(
-      `النص طويل جداً. الرجاء تقليصه إلى ${config.maxInputChars.toLocaleString()} حرفاً أو أقل.`,
+      `That text is too long. Please shorten it to ${config.maxInputChars.toLocaleString()} characters or fewer.`,
       413,
       "invalid_input",
       toUsageInfo(quota),
@@ -217,13 +220,13 @@ export async function POST(req: NextRequest) {
       return fail(err.message, 502, "ai_unavailable", toUsageInfo(quota));
     }
     console.error("[api/repurpose] unexpected error:", err);
-    return fail("حدث خطأ أثناء التوليد. الرجاء المحاولة مرة أخرى.", 500, "bad_request", toUsageInfo(quota));
+    return fail("Something went wrong while generating. Please try again.", 500, "bad_request", toUsageInfo(quota));
   }
 }
 
 export function GET() {
   return NextResponse.json(
-    { ok: false, error: "استخدم POST مع جسم JSON: { \"text\": string }" },
+    { ok: false, error: 'Use POST with a JSON body: { "text": string }' },
     { status: 405, headers: { Allow: "POST" } },
   );
 }

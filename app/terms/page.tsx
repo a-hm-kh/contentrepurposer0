@@ -4,53 +4,53 @@ import Link from "next/link";
 import { LogoMark } from "@/components/icons";
 
 export const metadata: Metadata = {
-  title: "شروط الاستخدام",
-  description: "شروط استخدام ContentRepurposer والاشتراك في خطة Pro.",
+  title: "Terms of Use",
+  description: "The terms for using ContentRepurposer and subscribing to the Pro plan.",
 };
 
 const SECTIONS = [
   {
-    title: "الخدمة",
+    title: "The service",
     body: [
-      "ContentRepurposer يحوّل قطعة محتوى أدخلتها إلى صيغ جاهزة للنشر على منصات التواصل (لينكدإن، إكس، إنستغرام، فيسبوك) مع خطة نشر أسبوعية.",
-      "الخدمة أداة تخطيط وكتابة فقط — ولا تنشر أي شيء نيابة عنك، ولا تتصل بحساباتك على أي منصة.",
+      "ContentRepurposer turns a piece of content you provide into formats ready to publish on social platforms (LinkedIn, X, Instagram, Facebook) along with a weekly publishing plan.",
+      "The service is a planning and writing tool only — it never publishes anything on your behalf and never connects to your accounts on any platform.",
     ],
   },
   {
-    title: "مسؤوليتك عن المحتوى",
+    title: "Your responsibility for content",
     body: [
-      "أنت المسؤول الكامل عن المحتوى الذي تلصقه وعن أي استخدام لاحق للمخرجات.",
-      "يجب ألا تلصق محتوى مخالفاً للقانون أو منتهكاً لحقوق الآخرين، أو يحتوي على بيانات شخصية حساسة لأطراف ثالثة دون إذن.",
-      "راجع المخرجات دائماً قبل النشر — أنت المسؤول النهائي عن دقتها وملاءمتها.",
+      "You are fully responsible for the content you paste and for any later use of the output.",
+      "You must not paste content that is unlawful, infringes the rights of others, or contains sensitive personal data about third parties without permission.",
+      "Always review the output before publishing — you are the final judge of its accuracy and suitability.",
     ],
   },
   {
-    title: "الخطط والأسعار",
+    title: "Plans and pricing",
     body: [
-      "الخطة المجانية تمنحك 10 توليدات مدى الحياة، وهي لمرة واحدة ولا تتجدد ولا تُصفَّر.",
-      "خطة Pro بسعر 15 دولاراً شهرياً، وتمنحك 20 توليداً و20 تعديلاً يومياً تتجدد تلقائياً كل 24 ساعة.",
-      "تُعالَج المدفوعات عبر Lemon Squeezy، ويمكنك الإلغاء في أي وقت وتستمر الخدمة حتى نهاية الفترة المدفوعة.",
+      "The free plan gives you 10 generations for life. It is one-time and never renews or resets.",
+      "The Pro plan is $15 per month and gives you 20 generations and 20 edits per day, refreshed automatically every 24 hours.",
+      "Payments are processed by Lemon Squeezy. You can cancel at any time and the service continues until the end of the paid period.",
     ],
   },
   {
-    title: "الاستخدام العادل",
+    title: "Fair use",
     body: [
-      "يُمنع الاستخدام المفرط أو الآلي (مثل الوصول البرمجي الجماعي) لتجاوز الحدود المفروضة.",
-      "نحتفظ بحق تعليق أي حساب يسوء استخدامه بما يضر بالخدمة أو بالمستخدمين الآخرين.",
+      "Excessive or automated use (such as bulk programmatic access) to bypass the enforced limits is not allowed.",
+      "We reserve the right to suspend any account whose use harms the service or other users.",
     ],
   },
   {
-    title: "حدود المسؤولية",
+    title: "Limitation of liability",
     body: [
-      "نقدّم الخدمة «كما هي» دون ضمانات مطلقة. نبذل جهداً معقولاً لتوفّرها وجودتها، لكننا لا نضمن خلوّ المخرجات من الأخطاء.",
-      "لا نتحمل مسؤولية أي خسارة ناتجة عن الاعتماد على المخرجات دون مراجعة بشرية.",
+      "We provide the service \u201Cas is\u201D without absolute warranties. We make a reasonable effort to keep it available and high quality, but we do not guarantee the output is free of errors.",
+      "We are not liable for any loss resulting from relying on the output without human review.",
     ],
   },
 ];
 
 export default function TermsPage() {
   return (
-    <div className="min-h-dvh bg-neutral-50/50" dir="rtl">
+    <div className="min-h-dvh bg-neutral-50/50">
       <header className="border-b border-neutral-200/70 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-3xl items-center px-6">
           <Link href="/" className="flex items-center gap-2.5">
@@ -61,9 +61,10 @@ export default function TermsPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">شروط الاستخدام</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Terms of Use</h1>
         <p className="mt-3 text-[15px] leading-7 text-neutral-500">
-          باستخدامك للمنصة فإنك توافق على الشروط التالية. صيغت بلغة واضحة لتكون مفهومة تماماً.
+          By using the platform you agree to the following terms. They are written
+          in plain language so they are completely clear.
         </p>
 
         <div className="mt-10 space-y-8">
@@ -83,8 +84,8 @@ export default function TermsPage() {
         </div>
 
         <div className="mt-8 flex gap-4 text-sm">
-          <Link href="/privacy" className="text-neutral-600 underline hover:text-neutral-950">سياسة الخصوصية</Link>
-          <Link href="/" className="text-neutral-600 underline hover:text-neutral-950">العودة للرئيسية</Link>
+          <Link href="/privacy" className="text-neutral-600 underline hover:text-neutral-950">Privacy Policy</Link>
+          <Link href="/" className="text-neutral-600 underline hover:text-neutral-950">Back to home</Link>
         </div>
       </main>
     </div>

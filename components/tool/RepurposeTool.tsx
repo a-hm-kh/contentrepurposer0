@@ -13,22 +13,30 @@ import type { RepurposedContent, RepurposeResponse, UsageInfo } from "@/lib/type
 const PRO_URL = process.env.NEXT_PUBLIC_PRO_URL?.trim() || "/dashboard/billing";
 
 const TONES = [
-  { value: "balanced", label: "متوازن" },
-  { value: "formal", label: "رسمي" },
-  { value: "casual", label: "عفوي" },
-  { value: "marketing", label: "تسويقي" },
-  { value: "educational", label: "تعليمي" },
-  { value: "professional", label: "احترافي" },
-  { value: "friendly", label: "ودود" },
-  { value: "persuasive", label: "إقناعي" },
-  { value: "concise", label: "مختصر" },
+  { value: "balanced", label: "Balanced" },
+  { value: "formal", label: "Formal" },
+  { value: "casual", label: "Casual" },
+  { value: "marketing", label: "Marketing" },
+  { value: "educational", label: "Educational" },
+  { value: "professional", label: "Professional" },
+  { value: "friendly", label: "Friendly" },
+  { value: "persuasive", label: "Persuasive" },
+  { value: "concise", label: "Concise" },
 ];
 
 const CONTENT_TYPES = [
-  { value: "ARTICLE", label: "مقال / مدونة" },
-  { value: "VIDEO_SCRIPT", label: "سكريبت فيديو" },
-  { value: "NEWSLETTER", label: "نشرة بريدية" },
-  { value: "TRANSCRIPT", label: "نص محادثة" },
+  { value: "ARTICLE", label: "Article / blog post" },
+  { value: "VIDEO_SCRIPT", label: "Video script" },
+  { value: "NEWSLETTER", label: "Newsletter" },
+  { value: "TRANSCRIPT", label: "Transcript" },
+];
+
+const UPGRADE_FEATURES = [
+  "20 generations per day (refreshed daily)",
+  "20 inline edits per day",
+  "7-day publishing plan with export",
+  "Video-script support and title ideas",
+  "Smart review on every result",
 ];
 
 interface Meta {
@@ -38,7 +46,6 @@ interface Meta {
 
 export function RepurposeTool() {
   const [text, setText] = useState("");
-  const [language, setLanguage] = useState<"ar" | "en">("ar");
   const [tone, setTone] = useState("balanced");
   const [contentType, setContentType] = useState("ARTICLE");
   const [isLoading, setIsLoading] = useState(false);
@@ -91,7 +98,7 @@ export function RepurposeTool() {
     if (isLoading) return;
 
     if (trimmed.length < MIN_INPUT_CHARS) {
-      setError(`الرجاء لصق ${MIN_INPUT_CHARS} حرفاً على الأقل — فقرة أو فقرتين تكفي للبدء.`);
+      setError(`Please paste at least ${MIN_INPUT_CHARS} characters — a paragraph or two is enough to start.`);
       return;
     }
 
@@ -102,7 +109,7 @@ export function RepurposeTool() {
       const res = await fetch("/api/repurpose", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, language, tone, inputType: contentType }),
+        body: JSON.stringify({ text, tone, inputType: contentType }),
       });
 
       const payload = (await res.json().catch(() => null)) as RepurposeResponse | null;
@@ -115,7 +122,7 @@ export function RepurposeTool() {
         setError(
           payload && payload.ok === false && payload.error
             ? payload.error
-            : "حدث خطأ أثناء توليد المحتوى. الرجاء المحاولة مرة أخرى.",
+            : "Something went wrong while generating your content. Please try again.",
         );
         return;
       }
@@ -128,7 +135,7 @@ export function RepurposeTool() {
         outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch {
-      setError("تعذّر الوصول إلى الخادم. تحقّق من اتصالك بالإنترنت وحاول مجدداً.");
+      setError("Could not reach the server. Check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -182,38 +189,37 @@ export function RepurposeTool() {
   }
 
   return (
-    <div className="space-y-8" dir="rtl">
+    <div className="space-y-8">
       {exhausted ? (
         <UpgradeCard usage={usage} />
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[13px] text-neutral-500">الصق محتواك، واحصل على الحزمة الكاملة.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[13px] text-neutral-500">
+            Paste your content and get the full bundle.
+          </p>
           {usage && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11.5px] font-medium text-neutral-600">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11.5px] font-medium text-neutral-600 shadow-[var(--shadow-control)]">
               <SparklesIcon className="h-3 w-3 text-neutral-400" />
               {usage.plan === "pro"
-                ? `خطة Pro · متبقٍ ${usage.remaining} من ${usage.limit} توليد اليوم`
-                : `الخطة المجانية · متبقٍ ${usage.remaining} من ${usage.limit} توليدات`}
+                ? `Pro plan · ${usage.remaining} of ${usage.limit} generations left today`
+                : `Free plan · ${usage.remaining} of ${usage.limit} generations left`}
             </span>
           )}
         </div>
       )}
 
       {!exhausted && (
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-[0_1px_3px_rgba(10,10,10,0.05)] sm:p-6"
-        >
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <form onSubmit={handleSubmit} className="surface p-4 sm:p-6">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor="content-type" className="mb-1.5 block text-xs font-medium text-neutral-600">
-                نوع المحتوى
+                Content type
               </label>
               <select
                 id="content-type"
                 value={contentType}
                 onChange={(e) => setContentType(e.target.value)}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[13px] text-neutral-800 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-950/5"
+                className="field"
               >
                 {CONTENT_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -223,56 +229,41 @@ export function RepurposeTool() {
 
             <div>
               <label htmlFor="tone" className="mb-1.5 block text-xs font-medium text-neutral-600">
-                نبرة الكتابة
+                Writing tone
               </label>
               <select
                 id="tone"
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[13px] text-neutral-800 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-950/5"
+                className="field"
               >
                 {TONES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
             </div>
-
-            <div>
-              <label htmlFor="language" className="mb-1.5 block text-xs font-medium text-neutral-600">
-                لغة الإخراج
-              </label>
-              <select
-                id="language"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as "ar" | "en")}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[13px] text-neutral-800 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-950/5"
-              >
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-              </select>
-            </div>
           </div>
 
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <label htmlFor="source-text" className="text-sm font-semibold tracking-tight text-neutral-900">
-              المحتوى الأصلي
+              Your content
             </label>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => { setText(SAMPLE_ARTICLE); setError(null); }}
-                className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
+                className="btn btn-ghost btn-sm"
               >
-                تحميل مثال
+                Load an example
               </button>
               <button
                 type="button"
                 onClick={() => { setText(""); setError(null); textareaRef.current?.focus(); }}
                 disabled={!text}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn btn-ghost btn-sm"
               >
                 <TrashIcon className="h-3.5 w-3.5" />
-                مسح
+                Clear
               </button>
             </div>
           </div>
@@ -284,10 +275,10 @@ export function RepurposeTool() {
             onChange={(event) => setText(event.target.value.slice(0, MAX_INPUT_CHARS))}
             onKeyDown={handleKeyDown}
             rows={9}
-            dir={language === "ar" ? "rtl" : "ltr"}
+            dir="ltr"
             spellCheck={false}
-            placeholder={"الصق مقالك، منشور مدونتك، النشرة البريدية، أو سكريبت الفيديو هنا…\n\nنصيحة: اضغط ⌘/Ctrl + Enter للتوليد."}
-            className="scrollbar-thin min-h-[200px] w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/60 px-4 py-3.5 text-[15px] leading-7 text-neutral-800 transition placeholder:text-neutral-400 focus:border-neutral-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-neutral-950/5"
+            placeholder={"Paste your article, blog post, newsletter or video script here…\n\nTip: press ⌘/Ctrl + Enter to generate."}
+            className="field scrollbar-thin min-h-[200px] resize-y bg-neutral-50/60 leading-7 focus:bg-white"
           />
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -296,20 +287,15 @@ export function RepurposeTool() {
                 {text.length.toLocaleString()} / {MAX_INPUT_CHARS.toLocaleString()}
               </span>
               <span className="hidden text-neutral-400 sm:inline">
-                {trimmed ? `${trimmed.split(/\s+/).length.toLocaleString()} كلمة` : "فارغ"}
+                {trimmed ? `${trimmed.split(/\s+/).length.toLocaleString()} words` : "empty"}
               </span>
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading || !canGenerate}
-              aria-busy={isLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <button type="submit" disabled={isLoading || !canGenerate} className="btn btn-primary btn-lg">
               {isLoading ? (
-                <><SpinnerIcon className="h-4 w-4" /> جاري التحويل…</>
+                <><SpinnerIcon className="h-4 w-4" /> Repurposing…</>
               ) : (
-                <><SparklesIcon className="h-4 w-4" /> تحويل المحتوى</>
+                <><SparklesIcon className="h-4 w-4" /> Repurpose content</>
               )}
             </button>
           </div>
@@ -320,16 +306,12 @@ export function RepurposeTool() {
         <div role="alert" className="animate-fade-in flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/70 px-4 py-3.5 text-sm text-red-800">
           <AlertIcon className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
           <div className="flex-1">
-            <p className="font-medium">فشل التوليد</p>
+            <p className="font-medium">Generation failed</p>
             <p className="mt-0.5 text-red-700">{error}</p>
           </div>
           {!exhausted && (
-            <button
-              type="button"
-              onClick={() => void generate()}
-              className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50"
-            >
-              إعادة المحاولة
+            <button type="button" onClick={() => void generate()} className="btn btn-secondary btn-sm shrink-0 border-red-200 text-red-700">
+              Try again
             </button>
           )}
         </div>
@@ -339,8 +321,9 @@ export function RepurposeTool() {
         <div className="animate-fade-in flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-[13px] text-amber-900">
           <BoltIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <p>
-            <span className="font-semibold">تم تفعيل المحرك الاحتياطي.</span> المحرك الأساسي كان
-            مشغولاً، فأكمل محرك احتياطي المهمة تلقائياً — بدون انقطاع، وبنفس الجودة.
+            <span className="font-semibold">Backup engine engaged.</span> The primary
+            engine was busy, so a backup completed the job automatically — no
+            interruption, same quality.
           </p>
         </div>
       )}
@@ -349,20 +332,22 @@ export function RepurposeTool() {
         {result && meta && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-neutral-950">النتائج</h2>
-              <p className="font-mono text-[11.5px] text-neutral-500">تم التوليد في {(meta.elapsedMs / 1000).toFixed(1)} ثانية</p>
+              <h2 className="text-lg font-semibold tracking-tight text-neutral-950">Your results</h2>
+              <p className="font-mono text-[11.5px] text-neutral-500">
+                Generated in {(meta.elapsedMs / 1000).toFixed(1)}s
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <CopyButton variant="ghost" label="نسخ الكل" text={composeAllText(result)} />
+              <CopyButton variant="ghost" label="Copy all" text={composeAllText(result)} />
               {!exhausted && (
                 <button
                   type="button"
                   onClick={() => void generate()}
                   disabled={isLoading}
-                  className="inline-flex items-center gap-2 rounded-lg bg-neutral-950 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="btn btn-primary btn-sm"
                 >
                   {isLoading ? <SpinnerIcon className="h-3.5 w-3.5" /> : null}
-                  إعادة التوليد
+                  Regenerate
                 </button>
               )}
             </div>
@@ -382,41 +367,41 @@ export function RepurposeTool() {
 
 function UpgradeCard({ usage }: { usage: UsageInfo | null }) {
   return (
-    <div className="animate-fade-up overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_3px_rgba(10,10,10,0.05)]">
+    <div className="surface animate-fade-up overflow-hidden">
       <div className="px-6 py-8 text-center sm:px-10 sm:py-10">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-neutral-950 text-white">
           <CheckIcon className="h-5 w-5" />
         </span>
 
         <h2 className="mt-5 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">
-          لقد استهلكت كل {usage?.limit ?? 10} توليدات مجانية
+          You have used all {usage?.limit ?? 10} free generations
         </h2>
 
         <p className="mx-auto mt-3 max-w-md text-[14.5px] leading-7 text-neutral-500">
-          الخطة المجانية <strong className="font-semibold text-neutral-700">لمرة واحدة فقط</strong> — لا
-          تتجدد ولا تُصفَّر أبداً. اشترك في خطة Pro لتكمل التحويل بدون حدود.
+          The free plan is a{" "}
+          <strong className="font-semibold text-neutral-700">one-time allowance</strong> —
+          it never renews and never resets. Upgrade to Pro to keep repurposing
+          without limits.
         </p>
 
-        <div className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50/60 p-5 text-right">
-          <p className="text-sm font-semibold text-neutral-900">خطة Pro — $15 شهرياً</p>
+        <div className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50/60 p-5 text-left">
+          <p className="text-sm font-semibold text-neutral-900">Pro plan — $15/month</p>
           <ul className="mt-3 space-y-1.5 text-[13px] text-neutral-600">
-            <li>✓ 20 توليد يومياً (تتجدد يومياً)</li>
-            <li>✓ 20 تعديل يومياً</li>
-            <li>✓ خطة النشر الأسبوعية</li>
-            <li>✓ دعم سكريبت الفيديو المنشورات الترويجية والعناوين</li>
-            <li>✓ مراجعة ذكية لكل نتيجة</li>
+            {UPGRADE_FEATURES.map((feature) => (
+              <li key={feature} className="flex gap-2">
+                <CheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                {feature}
+              </li>
+            ))}
           </ul>
         </div>
 
-        <a
-          href={PRO_URL}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-neutral-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
-        >
-          الاشتراك في Pro الآن
+        <a href={PRO_URL} className="btn btn-primary btn-lg mt-6">
+          Upgrade to Pro now
         </a>
 
         <p className="mt-3 text-xs text-neutral-400">
-          دفع آمن ومشفّر. يمكنك الإلغاء في أي وقت.
+          Secure, encrypted checkout. Cancel anytime.
         </p>
       </div>
 

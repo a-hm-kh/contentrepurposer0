@@ -9,9 +9,9 @@ import { signOutAction } from "@/lib/auth/actions";
 import { auth } from "@/lib/auth/config";
 
 export const metadata: Metadata = {
-  title: "استوديو التحويل",
+  title: "Studio",
   description:
-    "حوّل مقالاً أو سكريبت فيديو إلى منشور لينكدإن، سلسلة إكس، كابشن إنستغرام، منشور فيسبوك، وخطة نشر أسبوعية.",
+    "Turn an article or video script into a LinkedIn post, an X thread, an Instagram caption, a Facebook post and a weekly publishing plan.",
 };
 
 export default async function DashboardPage() {
@@ -19,31 +19,22 @@ export default async function DashboardPage() {
   const user = session?.user;
 
   return (
-    <div className="min-h-dvh bg-neutral-50/50" dir="rtl">
+    <div className="min-h-dvh bg-neutral-50/50">
       <header className="sticky top-0 z-40 border-b border-neutral-200/70 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950/20"
-          >
+          <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none">
             <LogoMark className="h-7 w-7" />
             <span className="text-[15px] font-semibold tracking-tight text-neutral-950">
               ContentRepurposer
             </span>
           </Link>
 
-          <nav className="mr-auto hidden items-center gap-1 sm:flex">
-            <Link
-              href="/weekly-plan"
-              className="rounded-lg px-3 py-1.5 text-[13px] font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-950"
-            >
-              خطة النشر الأسبوعية
+          <nav className="ml-auto hidden items-center gap-1 sm:flex">
+            <Link href="/weekly-plan" className="btn btn-ghost btn-sm">
+              Weekly plan
             </Link>
-            <Link
-              href="/dashboard/billing"
-              className="rounded-lg px-3 py-1.5 text-[13px] font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-950"
-            >
-              الاشتراك
+            <Link href="/dashboard/billing" className="btn btn-ghost btn-sm">
+              Billing
             </Link>
           </nav>
 
@@ -56,11 +47,8 @@ export default async function DashboardPage() {
               signOutAction={signOutAction}
             />
           ) : (
-            <Link
-              href="/auth/signin"
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[13px] font-medium text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-950"
-            >
-              تسجيل الدخول
+            <Link href="/auth/signin" className="btn btn-secondary btn-sm">
+              Sign in
             </Link>
           )}
         </div>
@@ -69,11 +57,12 @@ export default async function DashboardPage() {
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
-            استوديو التحويل
+            The Studio
           </h1>
           <p className="mt-2 max-w-2xl text-[15px] leading-7 text-neutral-500">
-            الصق محتواك، واختر النبرة واللغة، واحصل على حزمة كاملة جاهزة للتعديل والنشر —
-            مع مراجعة ذكية تضمن بقاء الفكرة الأصلية كما هي.
+            Paste your content, pick a tone, and get a complete bundle ready to
+            edit and publish — with a smart review that keeps your original idea
+            intact.
           </p>
         </div>
 
@@ -82,24 +71,26 @@ export default async function DashboardPage() {
         <div className="mt-12 grid gap-4 lg:grid-cols-2">
           <Link
             href="/weekly-plan"
-            className="group rounded-2xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300"
+            className="surface group p-6 transition hover:border-neutral-300"
           >
             <p className="text-sm font-semibold tracking-tight text-neutral-950">
-              خطة النشر الأسبوعية
+              Weekly publishing plan
             </p>
             <p className="mt-1 text-[13px] leading-6 text-neutral-500">
-              ضع مقالاً أو سكريبت، واحصل على خطة نشر لسبعة أيام: المنصة، نوع المنشور، الموضوع، والوقت
-              المقترح — مع تصدير JSON / CSV / Markdown.
+              Drop in an article or script and get a seven-day publishing plan:
+              platform, post type, topic and suggested time — with JSON / CSV /
+              Markdown export.
             </p>
           </Link>
 
-          <div className="flex flex-col gap-5 rounded-2xl border border-neutral-200 bg-white px-6 py-6">
+          <div className="surface flex flex-col gap-5 px-6 py-6">
             <div>
               <p className="text-sm font-semibold tracking-tight text-neutral-950">
-                تحديثات المنتج
+                Product updates
               </p>
               <p className="mt-0.5 text-[13px] leading-6 text-neutral-500">
-                ميزات جديدة وتحسينات وإطلاق الخطط المدفوعة — مباشرةً إلى بريدك.
+                New formats, improvements and paid plan launches — straight to
+                your inbox.
               </p>
             </div>
             <NewsletterForm className="w-full" />
@@ -110,7 +101,8 @@ export default async function DashboardPage() {
       <footer className="mx-auto max-w-6xl px-6 pb-10">
         <p className="text-xs text-neutral-400">
           © {new Date().getFullYear()}{" "}
-          <span className="font-medium text-neutral-600">Ahmad Khalil</span>. جميع الحقوق محفوظة.
+          <span className="font-medium text-neutral-600">Ahmad Khalil</span>.
+          All rights reserved.
         </p>
       </footer>
     </div>

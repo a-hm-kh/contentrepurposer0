@@ -3,13 +3,19 @@ import Link from "next/link";
 import { LogoMark } from "@/components/icons";
 import { NewsletterForm } from "@/components/tool/NewsletterForm";
 
+const FOOTER_LINKS = [
+  { href: "/dashboard", label: "Studio" },
+  { href: "/weekly-plan", label: "Weekly plan" },
+  { href: "#pricing", label: "Pricing" },
+];
+
 export function Footer() {
   return (
     <footer className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex flex-col items-center justify-between gap-6 border-b border-neutral-200/70 pb-8 sm:flex-row">
         <Link
           href="/"
-          className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950/20"
+          className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none"
         >
           <LogoMark className="h-6 w-6" />
           <span className="text-sm font-medium tracking-tight text-neutral-700">
@@ -18,23 +24,26 @@ export function Footer() {
         </Link>
 
         <div className="flex items-center gap-4 text-xs text-neutral-500">
-          <Link href="/dashboard" className="transition hover:text-neutral-950">
-            الاستوديو
-          </Link>
-          <Link href="/weekly-plan" className="transition hover:text-neutral-950">
-            خطة النشر
-          </Link>
-          <a href="#pricing" className="transition hover:text-neutral-950">
-            الأسعار
-          </a>
+          {FOOTER_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="transition hover:text-neutral-950"
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
       </div>
 
       <div className="flex flex-col items-center gap-6 py-8 lg:flex-row lg:justify-between">
-        <div className="max-w-sm text-center lg:text-right">
-          <h3 className="text-sm font-semibold tracking-tight text-neutral-950">ابقَ على اطلاع</h3>
+        <div className="max-w-sm text-center lg:text-left">
+          <h3 className="text-sm font-semibold tracking-tight text-neutral-950">
+            Stay in the loop
+          </h3>
           <p className="mt-1 text-[13px] leading-6 text-neutral-500">
-            كن أول من يعرف بالميزات الجديدة والتحديثات وإطلاق الخطط المدفوعة.
+            Be the first to hear about new formats, improvements and paid
+            plan launches.
           </p>
         </div>
 
@@ -43,11 +52,17 @@ export function Footer() {
 
       <div className="flex flex-col items-center justify-between gap-3 border-t border-neutral-200/70 pt-8 sm:flex-row">
         <p className="text-xs text-neutral-400">
-          © {new Date().getFullYear()} <span className="font-medium text-neutral-600">Ahmad Khalil</span>. جميع الحقوق محفوظة.
+          © {new Date().getFullYear()}{" "}
+          <span className="font-medium text-neutral-600">Ahmad Khalil</span>.
+          All rights reserved.
         </p>
         <div className="flex items-center gap-4 text-xs text-neutral-400">
-          <Link href="/privacy" className="transition hover:text-neutral-600">الخصوصية</Link>
-          <Link href="/terms" className="transition hover:text-neutral-600">الشروط</Link>
+          <Link href="/privacy" className="transition hover:text-neutral-600">
+            Privacy
+          </Link>
+          <Link href="/terms" className="transition hover:text-neutral-600">
+            Terms
+          </Link>
         </div>
       </div>
     </footer>

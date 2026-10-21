@@ -1,5 +1,5 @@
 /**
- * AI provider adapters (v2 — language + tone aware).
+ * AI provider adapters (v2 — tone aware, output language follows the source).
  */
 
 import type { ProviderName, RepurposedContent } from "@/lib/types";
@@ -122,7 +122,7 @@ async function callChat(
 export async function runGroq(text: string, language = "ar", tone = "balanced"): Promise<ProviderResult> {
   const apiKey = env("GROQ_API_KEY");
   if (!apiKey) throw new ProviderError("groq", "GROQ_API_KEY is not set");
-  const model = env("GROQ_MODEL") || "llama-3.3-70b-versatile";
+  const model = env("GROQ_MODEL") || "openai/gpt-oss-120b";
   const raw = await callChat("groq", `${GROQ_BASE_URL}/chat/completions`, apiKey, model, text, language, tone);
   return { content: parseRepurposedContent(raw), model };
 }
@@ -235,7 +235,7 @@ export async function runGroqText(
 ): Promise<{ raw: string; model: string }> {
   const apiKey = env("GROQ_API_KEY");
   if (!apiKey) throw new ProviderError("groq", "GROQ_API_KEY is not set");
-  const model = env("GROQ_MODEL") || "llama-3.3-70b-versatile";
+  const model = env("GROQ_MODEL") || "openai/gpt-oss-120b";
   const raw = await callChatText("groq", `${GROQ_BASE_URL}/chat/completions`, apiKey, model, messages, jsonMode);
   return { raw, model };
 }
