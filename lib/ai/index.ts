@@ -328,14 +328,16 @@ export async function generateWeeklyPlan(params: {
   const providers = TEXT_CHAIN.filter((step) => isConfigured(step.name));
   if (providers.length === 0) throw new AiConfigurationError();
 
-  const system = `You are a content and social media strategist. You'll receive one piece of content and must propose a full 7-day publishing plan.
+  const system = `You are a content and social media strategist. You will receive ONE piece of content and must propose a full 7-day publishing plan.
 
 Hard rules:
+- The "days" array MUST contain EXACTLY 7 items — one item per day of the week, in calendar order starting from the first day given in the weekday list below. Never return fewer than 7.
+- Every item must have ALL of these keys filled with non-empty text: day, platform, type, topic, time, hook, goal.
 - Use ONLY ideas present in the original content. Do not invent topics or facts.
-- Detect the language of the source content and write every value in that SAME language (topic, type, hook, goal, day names too).
+- Detect the language of the source content and write every value in that SAME language (day names, topic, type, hook and goal included). Platform names stay in English.
 - Spread days across different platforms (LinkedIn, Instagram, X, Facebook, TikTok, YouTube Shorts), never the same platform two days in a row.
-- Vary the post type: educational, story, quick tip, opinion, value offer, engagement question, recap.
-- Suggest a realistic 24-hour posting time.
+- Vary the post type across the week: educational, story, quick tip, opinion, value offer, engagement question, recap.
+- Give a realistic 24-hour posting time (HH:MM).
 - This is planning and export only — you never publish on the user's behalf.
 
 Return ONLY valid JSON in exactly this shape:
@@ -344,7 +346,7 @@ Return ONLY valid JSON in exactly this shape:
     { "day": "Sunday", "platform": "LinkedIn", "type": "Educational post", "topic": "topic", "time": "09:00", "hook": "suggested hook", "goal": "post goal" }
   ]
 }
-Return 7 days only, JSON with no commentary.`;
+Return exactly 7 items in "days". JSON only, no commentary.`;
 
   const messages = [
     { role: "system" as const, content: system },
@@ -356,7 +358,39 @@ Return 7 days only, JSON with no commentary.`;
   for (const step of providers) {
     try {
       const { raw, model } = await step.run(messages, true);
-      const days = normalizeWeeklyPlan(raw);
+      let days = normalizeWeeklyPlan(raw);
+
+      // Recovery: some models occasionally return fewer than 7 days. Ask again
+      // once for the missing days so the user gets a complete plan.
+      //
+      // Guarded on purpose: the top-up costs an extra request, and on free
+      // tiers (Groq's 8k-tokens-per-minute cap) firing it instantly can hit
+      // the provider rate limit. We wait briefly first and, if the top-up
+      // fails, we simply return what we already have rather than erroring.
+      if (days.length < 7) {
+        await sleep(1500);
+        try {
+          const have = days.map((d) => d.day).join(", ");
+          const topUpSystem = `${system}
+
+IMPORTANT: A previous attempt already produced these days: ${have}.
+Return JSON with ONLY the remaining days needed to complete a 7-day week.
+The "days" array must contain exactly ${7 - days.length} item(s).`;
+          const topUpMessages = [
+            { role: "system" as const, content: topUpSystem },
+            { role: "user" as const, content: params.text },
+          ];
+          const { raw: raw2 } = await step.run(topUpMessages, true);
+          const extra = normalizeWeeklyPlan(raw2).filter(
+            (d) => !days.some((existing) => existing.day === d.day),
+          );
+          days = [...days, ...extra].slice(0, 7);
+        } catch (topUpErr) {
+          const detail = topUpErr instanceof Error ? topUpErr.message : String(topUpErr);
+          console.warn(`[ai] weekly plan top-up failed (returning ${days.length} days). Reason: ${detail}`);
+        }
+      }
+
       return { days, provider: step.name, model };
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
@@ -366,4 +400,9 @@ Return 7 days only, JSON with no commentary.`;
   }
 
   throw new AiUnavailableError(failures);
+}
+
+/** Small promise delay — used to space out provider requests on free tiers. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

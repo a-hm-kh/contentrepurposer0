@@ -217,7 +217,17 @@ export async function POST(req: NextRequest) {
       return fail(err.message, 503, "ai_unavailable", toUsageInfo(quota));
     }
     if (err instanceof AiUnavailableError) {
-      return fail(err.message, 502, "ai_unavailable", toUsageInfo(quota));
+      // Transient upstream trouble (rate limits / demand spikes). The quota was
+      // already refunded above by not consuming on failure, so the user can
+      // simply retry. Show a calm message, not the raw provider payload.
+      console.warn("[api/repurpose] providers unavailable:", err.message);
+      return fail(
+        "The generator is busy right now. Please try again in a few seconds.",
+        503,
+        "ai_unavailable",
+        toUsageInfo(quota),
+        { "Retry-After": "5" },
+      );
     }
     console.error("[api/repurpose] unexpected error:", err);
     return fail("Something went wrong while generating. Please try again.", 500, "bad_request", toUsageInfo(quota));

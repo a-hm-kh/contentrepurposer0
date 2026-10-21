@@ -86,7 +86,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: err.message }, { status: 503 });
     }
     if (err instanceof AiUnavailableError) {
-      return NextResponse.json({ ok: false, error: err.message }, { status: 502 });
+      // Transient upstream trouble (rate limits / demand spikes). Show a calm,
+      // retryable message rather than the raw provider payload.
+      console.warn("[api/weekly-plan] providers unavailable:", err.message);
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "The planner is busy right now. Please try again in a few seconds.",
+          code: "ai_unavailable",
+        },
+        { status: 503, headers: { "Retry-After": "5" } },
+      );
     }
     console.error("[api/weekly-plan] unexpected error:", err);
     return NextResponse.json({ ok: false, error: "Could not build the plan. Please try again." }, { status: 500 });

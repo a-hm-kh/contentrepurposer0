@@ -28,7 +28,7 @@ export interface UsageInfo {
   limit: number;
   remaining: number;
   exhausted: boolean;
-  plan?: "free" | "pro";
+  plan?: "free" | "pro" | "admin";
   scope?: "user" | "anonymous";
   canGenerate?: boolean;
   canModify?: boolean;

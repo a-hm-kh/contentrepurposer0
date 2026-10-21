@@ -28,9 +28,75 @@ const TEMPERATURE = 0.7;
 // enough that the JSON is never truncated mid-object.
 const MAX_TOKENS = 8_000;
 
+/**
+ * Rate-limit resilience.
+ *
+ * Free provider tiers (notably Groq's 8k tokens-per-minute cap) routinely
+ * answer a burst with HTTP 429 even when the account is healthy. Rather than
+ * surfacing that to the customer as an outage, wait for the short window the
+ * provider asks for and try once more. Gemini's 503 "high demand" spikes are
+ * handled the same way because they are equally transient.
+ */
+const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+const MAX_RETRIES = 2;
+const DEFAULT_BACKOFF_MS = 1_200;
+const MAX_BACKOFF_MS = 6_000;
+
 function env(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * How long to wait before retrying. Prefers the provider's own `Retry-After`
+ * header, then a Groq-style "try again in 2.61s" hint in the body, and falls
+ * back to exponential backoff. Always clamped so a request can't stall the
+ * whole route.
+ */
+function retryDelayMs(res: Response, bodyText: string, attempt: number): number {
+  const header = Number.parseFloat(res.headers.get("retry-after") ?? "");
+  if (Number.isFinite(header) && header > 0) {
+    return Math.min(MAX_BACKOFF_MS, Math.ceil(header * 1000));
+  }
+  const hinted = bodyText.match(/try again in ([\d.]+)\s*(ms|s|m)?/i);
+  if (hinted) {
+    const value = Number.parseFloat(hinted[1]);
+    const unit = (hinted[2] ?? "s").toLowerCase();
+    const ms = unit === "ms" ? value : unit === "m" ? value * 60_000 : value * 1000;
+    if (Number.isFinite(ms) && ms > 0) {
+      // Add a small cushion — the provider's estimate is usually tight.
+      return Math.min(MAX_BACKOFF_MS, Math.ceil(ms) + 250);
+    }
+  }
+  return Math.min(MAX_BACKOFF_MS, DEFAULT_BACKOFF_MS * 2 ** attempt);
+}
+
+/** Send a request, retrying transient rate-limit / demand failures. */
+async function sendWithRetry(
+  provider: ProviderName,
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  let res = await request(provider, url, init);
+
+  for (let attempt = 0; attempt < MAX_RETRIES && RETRYABLE_STATUSES.has(res.status); attempt++) {
+    let bodyText = "";
+    try {
+      bodyText = (await res.clone().text()).slice(0, 500);
+    } catch {
+      /* ignore */
+    }
+    const wait = retryDelayMs(res, bodyText, attempt);
+    console.warn(`[ai] ${provider} returned ${res.status} — retrying in ${wait}ms`);
+    await sleep(wait);
+    res = await request(provider, url, init);
+  }
+
+  return res;
 }
 
 export function isConfigured(provider: ProviderName): boolean {
@@ -94,7 +160,7 @@ async function callChat(
   };
 
   const send = (payload: typeof body) =>
-    request(provider, url, {
+    sendWithRetry(provider, url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(payload),
@@ -150,7 +216,7 @@ export async function runGemini(text: string, language = "ar", tone = "balanced"
   });
 
   const send = (payload: ReturnType<typeof build>) =>
-    request("gemini", url, {
+    sendWithRetry("gemini", url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify(payload),
@@ -209,7 +275,7 @@ async function callChatText(
   };
 
   const send = (payload: typeof body) =>
-    request(provider, url, {
+    sendWithRetry(provider, url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(payload),
@@ -251,7 +317,7 @@ export async function runGeminiText(
   const user = messages.filter((m) => m.role === "user").map((m) => m.content).join("\n\n");
   const url = `${GEMINI_BASE_URL}/models/${encodeURIComponent(model)}:generateContent`;
 
-  const res = await request("gemini", url, {
+  const res = await sendWithRetry("gemini", url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({

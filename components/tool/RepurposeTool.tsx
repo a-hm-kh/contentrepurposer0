@@ -200,9 +200,11 @@ export function RepurposeTool() {
           {usage && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11.5px] font-medium text-neutral-600 shadow-[var(--shadow-control)]">
               <SparklesIcon className="h-3 w-3 text-neutral-400" />
-              {usage.plan === "pro"
-                ? `Pro plan · ${usage.remaining} of ${usage.limit} generations left today`
-                : `Free plan · ${usage.remaining} of ${usage.limit} generations left`}
+              {usage.plan === "admin"
+                ? "Admin · unlimited generations"
+                : usage.plan === "pro"
+                  ? `Pro plan · ${usage.remaining} of ${usage.limit} generations left today`
+                  : `Free plan · ${usage.remaining} of ${usage.limit} generations left`}
             </span>
           )}
         </div>

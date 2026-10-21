@@ -87,6 +87,16 @@ export default async function BillingPage({
           </div>
         )}
 
+        {quota?.plan === "admin" && (
+          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3.5 text-sm text-emerald-900">
+            <span className="mt-0.5">★</span>
+            <p>
+              You are signed in as an administrator — generations and edits are
+              unlimited and never counted against a plan.
+            </p>
+          </div>
+        )}
+
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           <div className="surface flex flex-col p-8">
             <h2 className="text-lg font-semibold tracking-tight text-neutral-950">
@@ -104,12 +114,12 @@ export default async function BillingPage({
                 </li>
               ))}
             </ul>
-            {!isPro && quota && (
+            {!isPro && quota?.plan !== "admin" && quota && (
               <p className="mt-6 rounded-xl bg-neutral-50 px-4 py-3 text-[13px] text-neutral-600">
                 You have used {quota.used} of {quota.limit} free generations.
               </p>
             )}
-            {!isPro && (
+            {!isPro && quota?.plan !== "admin" && (
               <p className="mt-3 text-xs font-medium text-neutral-500">
                 Your current plan
               </p>
@@ -142,6 +152,10 @@ export default async function BillingPage({
               {isPro ? (
                 <p className="rounded-xl bg-white/10 px-4 py-3 text-center text-[13px] text-white/80">
                   Your subscription is active. Thanks for your support!
+                </p>
+              ) : quota?.plan === "admin" ? (
+                <p className="rounded-xl bg-white/10 px-4 py-3 text-center text-[13px] text-white/80">
+                  Not needed — admin accounts are unlimited.
                 </p>
               ) : (
                 <CheckoutButton />

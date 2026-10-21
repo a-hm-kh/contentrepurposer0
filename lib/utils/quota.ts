@@ -1,9 +1,10 @@
 /**
  * Quota engine (single source of truth).
  *
- * Two tiers, one API:
+ * Three tiers, one API:
  *  - FREE   → 10 generations, lifetime, never renews.
  *  - PRO    → 20 generations + 20 modifications per rolling 24h window.
+ *  - ADMIN  → unlimited generations and modifications, never counted.
  *
  * Quota is tracked in Postgres (`UsageQuota`) for BOTH signed-in users
  * (keyed by `userId`) and anonymous visitors (keyed by the `cr_uid` cookie).
@@ -11,16 +12,18 @@
  * visitor can never reset their free allowance by clearing cookies vs signing in.
  */
 
-import { auth } from "@/lib/auth/config";
+import { auth, isAdminEmail } from "@/lib/auth/config";
 import { prisma } from "@/lib/db";
 import { config } from "@/lib/config";
 
 export const FREE_GENERATIONS = config.freeGenerations;
 export const PRO_DAILY_GENERATIONS = 20;
 export const PRO_DAILY_MODIFICATIONS = 20;
+/** Sentinel shown in the UI for unlimited (admin) accounts. */
+export const UNLIMITED = Number.MAX_SAFE_INTEGER;
 const RESET_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-export type PlanKind = "free" | "pro";
+export type PlanKind = "free" | "pro" | "admin";
 
 export interface QuotaSnapshot {
   /** Who this snapshot belongs to. */
@@ -50,12 +53,15 @@ function shape(params: {
   modificationsLimit: number;
   resetsAt?: Date | null;
 }): QuotaSnapshot {
-  const used = Math.max(0, params.used);
-  const limit = Math.max(0, params.limit);
-  const remaining = Math.max(0, limit - used);
-  const modificationsUsed = Math.max(0, params.modificationsUsed);
-  const modificationsLimit = Math.max(0, params.modificationsLimit);
-  const modificationsRemaining = Math.max(0, modificationsLimit - modificationsUsed);
+  // Admin accounts are unlimited: the cap is ignored entirely so the numbers
+  // never look like they are "running out".
+  const unlimited = params.limit >= UNLIMITED;
+  const used = unlimited ? 0 : Math.max(0, params.used);
+  const limit = unlimited ? UNLIMITED : Math.max(0, params.limit);
+  const remaining = unlimited ? UNLIMITED : Math.max(0, limit - used);
+  const modificationsUsed = unlimited ? 0 : Math.max(0, params.modificationsUsed);
+  const modificationsLimit = unlimited ? UNLIMITED : Math.max(0, params.modificationsLimit);
+  const modificationsRemaining = unlimited ? UNLIMITED : Math.max(0, modificationsLimit - modificationsUsed);
 
   return {
     scope: params.scope,
@@ -63,9 +69,11 @@ function shape(params: {
     used,
     limit,
     remaining,
-    exhausted: remaining <= 0,
-    canGenerate: remaining > 0,
-    canModify: params.plan === "pro" ? modificationsRemaining > 0 : remaining > 0,
+    exhausted: !unlimited && remaining <= 0,
+    canGenerate: unlimited || remaining > 0,
+    canModify:
+      unlimited ||
+      (params.plan === "pro" ? modificationsRemaining > 0 : remaining > 0),
     modificationsUsed,
     modificationsLimit,
     modificationsRemaining,
@@ -103,6 +111,32 @@ async function isProUser(userId: string): Promise<boolean> {
   return subscription?.plan === "PRO" && subscription.status === "ACTIVE";
 }
 
+/**
+ * Admin detection. Admins get unlimited generation and modification: their
+ * usage is never counted and no quota row is required.
+ *
+ * A user is an admin when EITHER their DB `role` is ADMIN, or their email is
+ * currently listed in `ADMIN_EMAILS` (so a fresh env var takes effect without
+ * a DB change).
+ */
+async function isAdminUser(userId: string, email?: string | null): Promise<boolean> {
+  if (isAdminEmail(email)) return true;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  return user?.role === "ADMIN";
+}
+
+/** Snapshot returned for admin accounts — unlimited, never stored. */
+function adminSnapshot(): QuotaSnapshot {
+  return shape({
+    scope: "user",
+    plan: "admin",
+    used: 0,
+    limit: UNLIMITED,
+    modificationsUsed: 0,
+    modificationsLimit: UNLIMITED,
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /* Anonymous visitors                                                  */
 /* ------------------------------------------------------------------ */
@@ -130,6 +164,12 @@ export async function resolveQuota(anonymousId?: string | null): Promise<QuotaSn
 
   if (session?.user?.id) {
     const userId = session.user.id;
+
+    // Admins are unlimited — checked first so they never touch quota rows.
+    if (await isAdminUser(userId, session.user.email)) {
+      return adminSnapshot();
+    }
+
     const pro = await isProUser(userId);
 
     if (pro) {
@@ -187,6 +227,12 @@ export async function consumeGeneration(anonymousId?: string | null) {
 
   if (session?.user?.id) {
     const userId = session.user.id;
+
+    // Admins never consume quota.
+    if (await isAdminUser(userId, session.user.email)) {
+      return adminSnapshot();
+    }
+
     const pro = await isProUser(userId);
 
     if (pro) {
@@ -257,6 +303,12 @@ export async function consumeModification(anonymousId?: string | null) {
 
   if (session?.user?.id) {
     const userId = session.user.id;
+
+    // Admins never consume quota.
+    if (await isAdminUser(userId, session.user.email)) {
+      return adminSnapshot();
+    }
+
     const pro = await isProUser(userId);
 
     if (pro) {
