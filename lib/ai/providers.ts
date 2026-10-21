@@ -21,9 +21,12 @@ export class ProviderError extends Error {
   }
 }
 
-const REQUEST_TIMEOUT_MS = 40_000;
+const REQUEST_TIMEOUT_MS = 60_000;
 const TEMPERATURE = 0.7;
-const MAX_TOKENS = 4_000;
+// The full bundle is large, and newer reasoning models spend part of this
+// budget on hidden reasoning tokens before writing the answer. Keep it high
+// enough that the JSON is never truncated mid-object.
+const MAX_TOKENS = 8_000;
 
 function env(name: string): string | undefined {
   const value = process.env[name]?.trim();
