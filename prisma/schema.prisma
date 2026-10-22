@@ -200,6 +200,12 @@ model Generation {
   videoTitles       Json?
   shortIdeas        Json?
 
+  // Extended written formats (Phase 1 bundle expansion)
+  newsletter        String?  @db.Text
+  carousel          Json?
+  blogArticle       String?  @db.Text
+  hashtags          Json?
+
   // AI metadata
   provider          String?
   model             String?

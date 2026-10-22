@@ -31,12 +31,24 @@ const CONTENT_TYPES = [
   { value: "TRANSCRIPT", label: "Transcript" },
 ];
 
+/**
+ * Free extra value: quick "copy for platform" presets that reformat the
+ * already-generated output for a specific destination. No AI call, no cost.
+ */
+const COPY_PRESETS = [
+  { id: "linkedin", label: "Copy for LinkedIn", target: "linkedin" as const },
+  { id: "x", label: "Copy for X", target: "twitter_thread" as const },
+  { id: "instagram", label: "Copy for Instagram", target: "instagram" as const },
+  { id: "facebook", label: "Copy for Facebook", target: "facebook" as const },
+];
+
 const UPGRADE_FEATURES = [
   "20 generations per day (refreshed daily)",
   "20 inline edits per day",
+  "Email newsletter, carousel and article formats",
   "7-day publishing plan with export",
   "Video-script support and title ideas",
-  "Smart review on every result",
+  "Smart review + publishing checklist",
 ];
 
 interface Meta {
@@ -332,26 +344,42 @@ export function RepurposeTool() {
 
       <section ref={outputRef} id="results" className="scroll-mt-24">
         {result && meta && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight text-neutral-950">Your results</h2>
-              <p className="font-mono text-[11.5px] text-neutral-500">
-                Generated in {(meta.elapsedMs / 1000).toFixed(1)}s
-              </p>
+          <div className="mb-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-neutral-950">Your results</h2>
+                <p className="font-mono text-[11.5px] text-neutral-500">
+                  Generated in {(meta.elapsedMs / 1000).toFixed(1)}s
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <CopyButton variant="ghost" label="Copy all" text={composeAllText(result)} />
+                {!exhausted && (
+                  <button
+                    type="button"
+                    onClick={() => void generate()}
+                    disabled={isLoading}
+                    className="btn btn-primary btn-sm"
+                  >
+                    {isLoading ? <SpinnerIcon className="h-3.5 w-3.5" /> : null}
+                    Regenerate
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <CopyButton variant="ghost" label="Copy all" text={composeAllText(result)} />
-              {!exhausted && (
-                <button
-                  type="button"
-                  onClick={() => void generate()}
-                  disabled={isLoading}
-                  className="btn btn-primary btn-sm"
-                >
-                  {isLoading ? <SpinnerIcon className="h-3.5 w-3.5" /> : null}
-                  Regenerate
-                </button>
-              )}
+
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50/60 px-3 py-2.5">
+              <span className="text-[11px] font-medium text-neutral-500">
+                Post-ready copies:
+              </span>
+              {COPY_PRESETS.map((preset) => (
+                <CopyButton
+                  key={preset.id}
+                  variant="ghost"
+                  label={preset.label}
+                  text={composeForPlatform(result, preset.target)}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -365,6 +393,25 @@ export function RepurposeTool() {
       </section>
     </div>
   );
+}
+
+/** Reformat the generated output for one destination. Pure client-side, free. */
+function composeForPlatform(data: RepurposedContent, target: "linkedin" | "twitter_thread" | "instagram" | "facebook"): string {
+  switch (target) {
+    case "linkedin":
+      return data.linkedin ?? "";
+    case "twitter_thread":
+      return (data.twitter_thread ?? []).map((t) => t.trim()).join("\n\n---\n\n");
+    case "instagram": {
+      const caption = (data.instagram ?? "").split(/#/)[0]?.trim() ?? "";
+      const tags = data.hashtags?.[1]?.trim() || "";
+      return tags && !data.instagram.includes(tags) ? `${caption}\n\n${tags}` : (data.instagram ?? "");
+    }
+    case "facebook":
+      return data.facebook ?? "";
+    default:
+      return "";
+  }
 }
 
 function UpgradeCard({ usage }: { usage: UsageInfo | null }) {
@@ -425,6 +472,12 @@ function composeAllText(data: RepurposedContent): string {
   if (data.facebook) parts.push(`FACEBOOK\n\n${data.facebook}`);
   if (data.hooks?.length) parts.push(`HOOKS\n\n${data.hooks.map((h, i) => `${i + 1}. ${h}`).join("\n")}`);
   if (data.cta) parts.push(`CALL TO ACTION\n\n${data.cta}`);
+  if (data.newsletter) parts.push(`EMAIL NEWSLETTER\n\n${data.newsletter}`);
+  if (data.carousel?.length) {
+    parts.push(`CAROUSEL\n\n${data.carousel.map((s, i) => `Slide ${i + 1}: ${s}`).join("\n\n")}`);
+  }
+  if (data.blogArticle) parts.push(`SHORT ARTICLE\n\n${data.blogArticle}`);
+  if (data.hashtags?.length) parts.push(`HASHTAGS\n\n${data.hashtags.join("\n\n")}`);
   if (data.videoTitles?.length) parts.push(`VIDEO TITLES\n\n${data.videoTitles.map((t, i) => `${i + 1}. ${t}`).join("\n")}`);
   if (data.shortIdeas?.length) parts.push(`SHORT-FORM IDEAS\n\n${data.shortIdeas.map((s, i) => `${i + 1}. ${s}`).join("\n")}`);
 

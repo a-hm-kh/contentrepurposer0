@@ -8,6 +8,7 @@ import {
   Formats,
   HowItWorks,
   Pricing,
+  TrustBand,
 } from "@/components/landing/sections";
 
 export default function HomePage() {
@@ -19,6 +20,7 @@ export default function HomePage() {
         <Hero />
         <HowItWorks />
         <Formats />
+        <TrustBand />
         <FailoverBand />
         <Pricing />
         <CtaBand />

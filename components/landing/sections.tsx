@@ -33,6 +33,8 @@ const RELIABILITY_POINTS = [
 const FREE_FEATURES = [
   "10 free generations, for life",
   "Every post format included",
+  "Email newsletter, carousel & article",
+  "Outputs in your own language",
   "Tone selection",
   "One-click copy on every result",
 ];
@@ -40,10 +42,30 @@ const FREE_FEATURES = [
 const PRO_FEATURES = [
   "20 generations per day (refreshed daily)",
   "20 inline edits per day",
+  "Every format: newsletter, carousel, article & more",
   "7-day publishing plan with export",
   "Video-script support and title ideas",
-  "Smart review on every result",
-  "Priority support",
+  "Smart review + publishing checklist",
+  "Cancel anytime in one click — no emails",
+];
+
+const TRUST_POINTS = [
+  {
+    title: "Speaks your language",
+    body: "Paste content in any language and every output comes back in that same language — natively written, never machine-translated.",
+  },
+  {
+    title: "We never post for you",
+    body: "No risky auto-publishing that can get your accounts flagged. Copy each piece and publish it yourself, on your terms.",
+  },
+  {
+    title: "Nothing burns on a failure",
+    body: "If the generator is briefly busy, you see a calm message — and your credit is not spent. Nothing is charged unless you get results.",
+  },
+  {
+    title: "Cancel in one click",
+    body: "Manage or cancel your plan straight from your dashboard. No support emails, no phone calls, no retention maze.",
+  },
 ];
 
 export function HowItWorks() {
@@ -191,7 +213,8 @@ export function Pricing() {
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-7 text-neutral-500">
             Your first 10 generations are free for life — they never renew.
-            After that, Pro is simple and predictable.
+            After that, Pro is simple and predictable, and you can cancel
+            anytime in one click.
           </p>
         </header>
 
@@ -253,6 +276,44 @@ export function Pricing() {
   );
 }
 
+export function TrustBand() {
+  return (
+    <section id="why" className="scroll-mt-24 border-b border-neutral-200/70">
+      <div className="mx-auto max-w-6xl px-6 py-20">
+        <header className="max-w-2xl">
+          <p className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-neutral-400">
+            <span aria-hidden className="h-1 w-1 rounded-full bg-emerald-500" />
+            Why people stay
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+            The things that make creators quit other tools — solved here
+          </h2>
+          <p className="mt-4 text-[15px] leading-7 text-neutral-500">
+            Everything you need in one place, with none of the traps that turn a
+            useful tool into a frustrating subscription.
+          </p>
+        </header>
+
+        <div className="mt-12 grid gap-5 sm:grid-cols-2">
+          {TRUST_POINTS.map((point) => (
+            <article key={point.title} className="surface p-6">
+              <div className="flex items-center gap-2.5">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-50 ring-1 ring-emerald-200">
+                  <CheckIcon className="h-3 w-3 text-emerald-600" />
+                </span>
+                <h3 className="text-base font-semibold tracking-tight text-neutral-950">
+                  {point.title}
+                </h3>
+              </div>
+              <p className="mt-3 text-[14.5px] leading-7 text-neutral-500">{point.body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function CtaBand() {
   return (
     <section className="border-b border-neutral-200/70">
@@ -268,7 +329,7 @@ export function CtaBand() {
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-[15px] leading-7 text-white/60">
               No sign-up to start and no credit card. Your first 10 generations
-              are free.
+              are free — in any language, with every format unlocked.
             </p>
             <Link
               href="/dashboard"

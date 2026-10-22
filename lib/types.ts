@@ -12,6 +12,14 @@ export interface RepurposedContent {
   videoPromotions?: string[];
   videoTitles?: string[];
   shortIdeas?: string[];
+  /** Newsletter / email edition of the source content. */
+  newsletter?: string;
+  /** Slide-by-slide carousel outline (LinkedIn / Instagram). */
+  carousel?: string[];
+  /** A short standalone article / blog post built only from the source. */
+  blogArticle?: string;
+  /** Ready-to-use hashtag sets for the source topic. */
+  hashtags?: string[];
   reviewCheck?: {
     matchesOriginal: boolean;
     confidence: number;

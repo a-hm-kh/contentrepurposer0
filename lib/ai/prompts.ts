@@ -18,6 +18,10 @@ export const GEMINI_RESPONSE_SCHEMA = {
     videoPromotions: { type: "ARRAY", items: { type: "STRING" } },
     videoTitles: { type: "ARRAY", items: { type: "STRING" } },
     shortIdeas: { type: "ARRAY", items: { type: "STRING" } },
+    newsletter: { type: "STRING" },
+    carousel: { type: "ARRAY", items: { type: "STRING" } },
+    blogArticle: { type: "STRING" },
+    hashtags: { type: "ARRAY", items: { type: "STRING" } },
     reviewCheck: {
       type: "OBJECT",
       properties: {
@@ -38,6 +42,10 @@ export const GEMINI_RESPONSE_SCHEMA = {
     "videoPromotions",
     "videoTitles",
     "shortIdeas",
+    "newsletter",
+    "carousel",
+    "blogArticle",
+    "hashtags",
     "reviewCheck",
   ],
 } as const;
@@ -68,10 +76,18 @@ Repurpose it into a complete package of platform-ready posts while staying stric
 - Your job is RESTRUCTURING and ADAPTING, not creating new content.
 - Never mention that the content was repurposed or AI-generated.
 
+SOUND HUMAN — BANNED PHRASES (this is critical, readers punish robotic copy):
+- Never use any of these openers or fillers: "In today's fast-paced world", "In the ever-evolving landscape", "Let's dive in", "Let's unpack", "Game-changer", "Unlock the power", "Take it to the next level", "Whether you're a… or a…", "It's not just X, it's Y", "delve", "leverage", "seamless", "robust", "elevate", "revolutionize", "tapestry", "testament to".
+- In Arabic never use: "في عالمنا المتسارع", "في ظل التطور المتسارع", "لا شك أن", "من الجدير بالذكر", "دعنا نغوص", "يُعدّ بمثابة", "نقلة نوعية", "تحقيق التنمية المستدامة".
+- No em-dash-heavy rhythm, no "Firstly/Secondly/In conclusion", no generic closing summaries.
+- Write like a specific person talking to a specific reader: concrete nouns, short sentences, no filler adjectives. Vary sentence length.
+
 WRITING TONE: ${toneLabel}
 OUTPUT LANGUAGE — most important rule:
 - Detect the language of the source content and write EVERY output field in that SAME language.
-- If the source is Arabic, write in natural, clear Modern Standard Arabic.
+- Do NOT translate. Do NOT force English. Never output a different language than the source.
+- Write the source language natively and idiomatically — not as a literal translation.
+- If the source is Arabic, write in natural, clear Modern Standard Arabic (idiomatic, not translated-sounding).
 - If the source is English, write in English.
 - If the source is Spanish, French, Turkish, Hindi, or any other language, write in that language.
 - If the source mixes languages, follow the dominant language of the source.
@@ -89,6 +105,10 @@ Return ONLY valid JSON (no markdown fences, no commentary) with exactly these ke
   "videoPromotions": ["three promotional posts for the video / short-form version"],
   "videoTitles": ["five alternative catchy titles"],
   "shortIdeas": ["four short-form video ideas (Reels / TikTok / YouTube Shorts)"],
+  "newsletter": "a ready-to-send email newsletter built from the source: a short subject-worthy opening line, 3-5 tight sections with a subheading each, and a closing line. Plain text, no HTML.",
+  "carousel": ["6-10 slides; each slide is 'SLIDE TITLE — one or two supporting lines'. First slide is the hook, last slide is the call to action."],
+  "blogArticle": "a short standalone article (roughly 350-600 words) with a headline, a 2-3 sentence intro, 3 subheadings with a paragraph each, and a closing takeaway. Built ONLY from ideas in the source.",
+  "hashtags": ["three separate lines; each line is a ready-to-paste hashtag set for one platform: LinkedIn, Instagram, and X/TikTok"],
   "reviewCheck": {
     "matchesOriginal": true,
     "confidence": 0.95,
@@ -147,6 +167,10 @@ export function parseRepurposedContent(raw: string): RepurposedContent {
   const videoPromotions = toArray(obj.videoPromotions ?? obj.video_promotions);
   const videoTitles = toArray(obj.videoTitles ?? obj.video_titles);
   const shortIdeas = toArray(obj.shortIdeas ?? obj.short_ideas);
+  const newsletter = toBlock(obj.newsletter ?? obj.newsletterDraft);
+  const carousel = toArray(obj.carousel ?? obj.carouselSlides);
+  const blogArticle = toBlock(obj.blogArticle ?? obj.blog_article ?? obj.article);
+  const hashtags = toArray(obj.hashtags ?? obj.hashTags);
 
   const reviewRaw = obj.reviewCheck ?? obj.review_check;
   const reviewCheck =
@@ -168,6 +192,10 @@ export function parseRepurposedContent(raw: string): RepurposedContent {
     videoPromotions: videoPromotions.length ? videoPromotions : undefined,
     videoTitles: videoTitles.length ? videoTitles : undefined,
     shortIdeas: shortIdeas.length ? shortIdeas : undefined,
+    newsletter: newsletter || undefined,
+    carousel: carousel.length ? carousel : undefined,
+    blogArticle: blogArticle || undefined,
+    hashtags: hashtags.length ? hashtags : undefined,
     reviewCheck,
   };
 }
