@@ -14,6 +14,8 @@ interface UserMenuProps {
 
 const MENU_ITEMS = [
   { href: "/dashboard", label: "Studio" },
+  { href: "/dashboard/library", label: "My library" },
+  { href: "/dashboard/voice", label: "Brand voice" },
   { href: "/weekly-plan", label: "Weekly plan" },
   { href: "/dashboard/billing", label: "Billing & plan" },
 ];

@@ -62,7 +62,31 @@ const TONE_LABELS: Record<string, string> = {
   concise: "concise and focused",
 };
 
-function buildSystemPrompt(tone: string): string {
+/** The user's saved writing identity, injected into the system prompt. */
+export interface BrandVoiceProfile {
+  about?: string | null;
+  audience?: string | null;
+  likedWords?: string | null;
+  bannedWords?: string | null;
+}
+
+function buildVoiceBlock(voice?: BrandVoiceProfile | null): string {
+  if (!voice) return "";
+  const parts: string[] = [];
+  if (voice.about?.trim()) parts.push(`- Who the author is: ${voice.about.trim()}`);
+  if (voice.audience?.trim()) parts.push(`- Who they write for: ${voice.audience.trim()}`);
+  if (voice.likedWords?.trim()) parts.push(`- Words and phrases they like to use: ${voice.likedWords.trim()}`);
+  const hasBanned = Boolean(voice.bannedWords?.trim());
+  if (hasBanned) parts.push(`- Words and phrases they NEVER want to see: ${voice.bannedWords!.trim()}`);
+  if (parts.length === 0) return "";
+
+  return `
+AUTHOR VOICE PROFILE — match this voice exactly, it overrides generic style advice:
+${parts.join("\n")}
+- Write as this specific person, not as a content marketer.${hasBanned ? "\n- The banned list above is an absolute hard rule: never output those words or phrases." : ""}`;
+}
+
+function buildSystemPrompt(tone: string, voice?: BrandVoiceProfile | null): string {
   const toneLabel = TONE_LABELS[tone] || tone;
 
   return `You are a world-class social media copywriter and content strategist.
@@ -82,7 +106,7 @@ SOUND HUMAN — BANNED PHRASES (this is critical, readers punish robotic copy):
 - No em-dash-heavy rhythm, no "Firstly/Secondly/In conclusion", no generic closing summaries.
 - Write like a specific person talking to a specific reader: concrete nouns, short sentences, no filler adjectives. Vary sentence length.
 
-WRITING TONE: ${toneLabel}
+WRITING TONE: ${toneLabel}${buildVoiceBlock(voice)}
 OUTPUT LANGUAGE — most important rule:
 - Detect the language of the source content and write EVERY output field in that SAME language.
 - Do NOT translate. Do NOT force English. Never output a different language than the source.
@@ -123,12 +147,13 @@ export function buildMessages(
   text: string,
   _language?: string,
   tone = "balanced",
+  voice?: BrandVoiceProfile | null,
 ): { role: "system" | "user"; content: string }[] {
   const userIntro =
     "Repurpose the following content into the requested JSON package. Write every value in the same language as the content itself.";
 
   return [
-    { role: "system", content: buildSystemPrompt(tone) },
+    { role: "system", content: buildSystemPrompt(tone, voice) },
     { role: "user", content: `${userIntro}\n\n<content>\n${text}\n</content>` },
   ];
 }

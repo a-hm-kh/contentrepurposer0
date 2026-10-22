@@ -30,6 +30,12 @@ export default async function DashboardPage() {
           </Link>
 
           <nav className="ml-auto hidden items-center gap-1 sm:flex">
+            <Link href="/dashboard/library" className="btn btn-ghost btn-sm">
+              Library
+            </Link>
+            <Link href="/dashboard/voice" className="btn btn-ghost btn-sm">
+              Brand voice
+            </Link>
             <Link href="/weekly-plan" className="btn btn-ghost btn-sm">
               Weekly plan
             </Link>
@@ -68,7 +74,33 @@ export default async function DashboardPage() {
 
         <RepurposeTool />
 
-        <div className="mt-12 grid gap-4 lg:grid-cols-2">
+        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+          <Link
+            href="/dashboard/library"
+            className="surface group p-6 transition hover:border-neutral-300"
+          >
+            <p className="text-sm font-semibold tracking-tight text-neutral-950">
+              My library
+            </p>
+            <p className="mt-1 text-[13px] leading-6 text-neutral-500">
+              Save any bundle and come back to it later. Reopen, copy a single
+              piece, or download the whole thing as a text file.
+            </p>
+          </Link>
+
+          <Link
+            href="/dashboard/voice"
+            className="surface group p-6 transition hover:border-neutral-300"
+          >
+            <p className="text-sm font-semibold tracking-tight text-neutral-950">
+              Brand voice
+            </p>
+            <p className="mt-1 text-[13px] leading-6 text-neutral-500">
+              Describe how you write once. Every future result follows your
+              voice, your audience and your banned-words list.
+            </p>
+          </Link>
+
           <Link
             href="/weekly-plan"
             className="surface group p-6 transition hover:border-neutral-300"
@@ -82,19 +114,19 @@ export default async function DashboardPage() {
               Markdown export.
             </p>
           </Link>
+        </div>
 
-          <div className="surface flex flex-col gap-5 px-6 py-6">
-            <div>
-              <p className="text-sm font-semibold tracking-tight text-neutral-950">
-                Product updates
-              </p>
-              <p className="mt-0.5 text-[13px] leading-6 text-neutral-500">
-                New formats, improvements and paid plan launches — straight to
-                your inbox.
-              </p>
-            </div>
-            <NewsletterForm className="w-full" />
+        <div className="surface mt-4 flex flex-col gap-5 px-6 py-6">
+          <div>
+            <p className="text-sm font-semibold tracking-tight text-neutral-950">
+              Product updates
+            </p>
+            <p className="mt-0.5 text-[13px] leading-6 text-neutral-500">
+              New formats, improvements and paid plan launches — straight to
+              your inbox.
+            </p>
           </div>
+          <NewsletterForm className="w-full" />
         </div>
       </main>
 

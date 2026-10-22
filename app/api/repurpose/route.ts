@@ -9,6 +9,7 @@ import { ANONYMOUS_UID_COOKIE, getUid, newUid, uidCookieOptions } from "@/lib/st
 import { consumeGeneration, QuotaExceededError, resolveQuota, type QuotaSnapshot } from "@/lib/utils/quota";
 import { trackGeneration } from "@/lib/analytics/tracker";
 import { detectLanguage } from "@/lib/utils/language";
+import { loadBrandVoice } from "@/lib/utils/brand-voice";
 import type { InputType, RepurposeFailure, UsageInfo } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -143,9 +144,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 4) Generate via the failover chain.
+  // 4) Generate via the failover chain. The signed-in user's saved brand
+  //    voice (if any) is injected into the prompt so output sounds like them.
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+  const voice = await loadBrandVoice(userId);
+
   try {
-    const result = await generateRepurposedContent(text, language, tone);
+    const result = await generateRepurposedContent(text, language, tone, voice);
 
     // 5) Charge quota only after a successful generation.
     let nextQuota: QuotaSnapshot | null = quota;
@@ -154,9 +160,6 @@ export async function POST(req: NextRequest) {
     } catch (quotaErr) {
       if (!(quotaErr instanceof QuotaExceededError)) throw quotaErr;
     }
-
-    const session = await auth();
-    const userId = session?.user?.id ?? null;
 
     // 6) Persist the full input + output for the private admin record.
     let generationId: string | null = null;

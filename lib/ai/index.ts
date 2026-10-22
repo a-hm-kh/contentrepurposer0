@@ -13,6 +13,9 @@ import {
   runOpenAi,
   runOpenAiText,
 } from "@/lib/ai/providers";
+import type { BrandVoiceProfile } from "@/lib/ai/prompts";
+
+export type { BrandVoiceProfile };
 
 export interface GenerationResult {
   data: RepurposedContent;
@@ -93,7 +96,12 @@ const MODIFICATION_RULES: Record<ModificationKind, { rule: string; wantsVariants
   },
 };
 
-type Runner = (text: string, language: string, tone: string) => Promise<{ content: RepurposedContent; model: string }>;
+type Runner = (
+  text: string,
+  language: string,
+  tone: string,
+  voice?: BrandVoiceProfile | null,
+) => Promise<{ content: RepurposedContent; model: string }>;
 
 const CHAIN: { name: ProviderName; run: Runner }[] = [
   { name: "groq", run: runGroq as Runner },
@@ -109,6 +117,7 @@ export async function generateRepurposedContent(
   text: string,
   language: string = "ar",
   tone: string = "balanced",
+  voice?: BrandVoiceProfile | null,
 ): Promise<GenerationResult> {
   const providers = CHAIN.filter((step) => isConfigured(step.name));
   if (providers.length === 0) throw new AiConfigurationError();
@@ -119,7 +128,7 @@ export async function generateRepurposedContent(
 
   for (const step of providers) {
     try {
-      const { content, model } = await step.run(text, language, tone);
+      const { content, model } = await step.run(text, language, tone, voice);
       return { data: content, provider: step.name, model, elapsedMs: Date.now() - startedAt, failedProviders };
     } catch (err) {
       const detail = err instanceof ProviderError ? err.message : err instanceof Error ? err.message : String(err);

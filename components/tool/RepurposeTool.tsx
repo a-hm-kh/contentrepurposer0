@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { AlertIcon, BoltIcon, CheckIcon, SparklesIcon, SpinnerIcon, TrashIcon } from "@/components/icons";
+import { AlertIcon, BoltIcon, BookmarkIcon, CheckIcon, SparklesIcon, SpinnerIcon, TrashIcon } from "@/components/icons";
 import { NewsletterForm } from "@/components/tool/NewsletterForm";
 import { CopyButton } from "@/components/tool/CopyButton";
 import { RepurposeResults, type ModifyRequest, type ModifyResponse } from "@/components/tool/RepurposeResults";
@@ -167,6 +167,23 @@ export function RepurposeTool() {
 
   function handleUpdate(patch: Partial<RepurposedContent>) {
     setResult((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  async function saveToLibrary() {
+    if (!generationId) return;
+    setSaveState("saving");
+    try {
+      const res = await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ generationId }),
+      });
+      setSaveState(res.ok ? "saved" : "error");
+    } catch {
+      setSaveState("error");
+    }
   }
 
   async function handleModify(req: ModifyRequest): Promise<ModifyResponse | null> {
@@ -354,6 +371,22 @@ export function RepurposeTool() {
               </div>
               <div className="flex items-center gap-2">
                 <CopyButton variant="ghost" label="Copy all" text={composeAllText(result)} />
+                <button
+                  type="button"
+                  onClick={() => void saveToLibrary()}
+                  disabled={!generationId || saveState === "saving" || saveState === "saved"}
+                  className="btn btn-ghost btn-sm"
+                  title={generationId ? "Save this bundle to your library" : "Sign in to save"}
+                >
+                  {saveState === "saving" ? (
+                    <SpinnerIcon className="h-3.5 w-3.5" />
+                  ) : saveState === "saved" ? (
+                    <CheckIcon className="h-3.5 w-3.5 text-emerald-600" />
+                  ) : (
+                    <BookmarkIcon className="h-3.5 w-3.5" />
+                  )}
+                  {saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : "Save"}
+                </button>
                 {!exhausted && (
                   <button
                     type="button"

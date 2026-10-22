@@ -34,6 +34,8 @@ model User {
   modifications Modification[]
   weeklyPlans   WeeklyPlan[]
   auditLogs     AuditLog[]
+  brandVoice    BrandVoice?
+  savedItems    SavedItem[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -263,6 +265,64 @@ enum ModificationType {
   THREE_VARIANTS
   CHANGE_TONE
   CUSTOM
+}
+
+// ========================================
+// Brand Voice (user writing identity)
+// ========================================
+
+/**
+ * A user's writing identity. Injected into the system prompt so outputs sound
+ * like the person, not a generic model. One row per user (optional).
+ */
+model BrandVoice {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /** Who the author is, in their own words. */
+  about       String?  @db.Text
+  /** Who they write for. */
+  audience    String?  @db.Text
+  /** Words/phrases they like to use. */
+  likedWords  String?  @db.Text
+  /** Words/phrases they never want to see. */
+  bannedWords String?  @db.Text
+  /** A few writing samples used to infer the voice. */
+  samples     String?  @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ========================================
+// Saved Library
+// ========================================
+
+/**
+ * Content the user explicitly saved to their library so it survives page
+ * reloads and closed tabs. Points at the originating Generation.
+ */
+model SavedItem {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationId String
+
+  /** Optional user-given title for the saved piece. */
+  title        String?
+  /** "bundle" | "weekly" | "single" — what kind of item this is. */
+  kind         String   @default("bundle")
+  /** Optional JSON snapshot of edited content, if the user changed it. */
+  snapshot     Json?
+
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, generationId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // ========================================

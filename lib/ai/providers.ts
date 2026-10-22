@@ -3,7 +3,12 @@
  */
 
 import type { ProviderName, RepurposedContent } from "@/lib/types";
-import { buildMessages, GEMINI_RESPONSE_SCHEMA, parseRepurposedContent } from "@/lib/ai/prompts";
+import {
+  buildMessages,
+  GEMINI_RESPONSE_SCHEMA,
+  parseRepurposedContent,
+  type BrandVoiceProfile,
+} from "@/lib/ai/prompts";
 
 export interface ProviderResult {
   content: RepurposedContent;
@@ -144,6 +149,7 @@ async function callChat(
   text: string,
   language: string,
   tone: string,
+  voice?: BrandVoiceProfile | null,
 ): Promise<string> {
   const body: {
     model: string;
@@ -153,7 +159,7 @@ async function callChat(
     response_format?: { type: "json_object" };
   } = {
     model,
-    messages: buildMessages(text, language, tone),
+    messages: buildMessages(text, language, tone, voice),
     temperature: TEMPERATURE,
     max_tokens: MAX_TOKENS,
     response_format: { type: "json_object" },
@@ -185,20 +191,30 @@ async function callChat(
   return content;
 }
 
-export async function runGroq(text: string, language = "ar", tone = "balanced"): Promise<ProviderResult> {
+export async function runGroq(
+  text: string,
+  language = "ar",
+  tone = "balanced",
+  voice?: BrandVoiceProfile | null,
+): Promise<ProviderResult> {
   const apiKey = env("GROQ_API_KEY");
   if (!apiKey) throw new ProviderError("groq", "GROQ_API_KEY is not set");
   const model = env("GROQ_MODEL") || "openai/gpt-oss-120b";
-  const raw = await callChat("groq", `${GROQ_BASE_URL}/chat/completions`, apiKey, model, text, language, tone);
+  const raw = await callChat("groq", `${GROQ_BASE_URL}/chat/completions`, apiKey, model, text, language, tone, voice);
   return { content: parseRepurposedContent(raw), model };
 }
 
-export async function runGemini(text: string, language = "ar", tone = "balanced"): Promise<ProviderResult> {
+export async function runGemini(
+  text: string,
+  language = "ar",
+  tone = "balanced",
+  voice?: BrandVoiceProfile | null,
+): Promise<ProviderResult> {
   const apiKey = env("GEMINI_API_KEY") || env("GOOGLE_API_KEY");
   if (!apiKey) throw new ProviderError("gemini", "GEMINI_API_KEY is not set");
 
   const model = env("GEMINI_MODEL") || "gemini-2.5-flash";
-  const messages = buildMessages(text, language, tone);
+  const messages = buildMessages(text, language, tone, voice);
   const system = messages[0]?.content ?? "";
   const user = messages[1]?.content ?? "";
   const url = `${GEMINI_BASE_URL}/models/${encodeURIComponent(model)}:generateContent`;
@@ -240,11 +256,16 @@ export async function runGemini(text: string, language = "ar", tone = "balanced"
   return { content: parseRepurposedContent(raw), model };
 }
 
-export async function runOpenAi(text: string, language = "ar", tone = "balanced"): Promise<ProviderResult> {
+export async function runOpenAi(
+  text: string,
+  language = "ar",
+  tone = "balanced",
+  voice?: BrandVoiceProfile | null,
+): Promise<ProviderResult> {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) throw new ProviderError("openai", "OPENAI_API_KEY is not set");
   const model = env("OPENAI_MODEL") || "gpt-4o-mini";
-  const raw = await callChat("openai", `${OPENAI_BASE_URL}/chat/completions`, apiKey, model, text, language, tone);
+  const raw = await callChat("openai", `${OPENAI_BASE_URL}/chat/completions`, apiKey, model, text, language, tone, voice);
   return { content: parseRepurposedContent(raw), model };
 }
 

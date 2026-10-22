@@ -38,6 +38,8 @@ export default async function AdminDashboard() {
     monthlyGenerations,
     monthlyModifications,
     monthlySignups,
+    totalSavedItems,
+    totalBrandVoices,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.generation.count(),
@@ -66,6 +68,8 @@ export default async function AdminDashboard() {
     prisma.generation.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     prisma.modification.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    prisma.savedItem.count(),
+    prisma.brandVoice.count(),
   ]);
 
   const monthlyVisits = analytics.reduce((sum, a) => sum + a.uniqueVisitors, 0);
@@ -76,6 +80,7 @@ export default async function AdminDashboard() {
     { label: "Active Pro subscriptions", value: activeSubscriptions.toLocaleString("en-US"), hint: `MRR ≈ $${mrr.toFixed(2)}` },
     { label: "Visits, last 30 days", value: monthlyVisits.toLocaleString("en-US"), hint: "unique visitors" },
     { label: "Generations, last 30 days", value: monthlyGenerations.toLocaleString("en-US"), hint: `${monthlyModifications} edits` },
+    { label: "Saved library items", value: totalSavedItems.toLocaleString("en-US"), hint: `${totalBrandVoices} brand voices` },
   ];
 
   return (

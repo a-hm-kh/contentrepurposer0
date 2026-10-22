@@ -94,6 +94,31 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
+export function LibraryIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4.5 5.5A1.5 1.5 0 0 1 6 4h3.2a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 9.2 20H6a1.5 1.5 0 0 1-1.5-1.5v-13ZM13.5 5.5A1.5 1.5 0 0 1 15 4h3.2a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 18.2 16H15a1.5 1.5 0 0 1-1.5-1.5v-9Z" />
+    </svg>
+  );
+}
+
+export function BookmarkIcon({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
+      <path d="M6.5 5.5A1.5 1.5 0 0 1 8 4h8a1.5 1.5 0 0 1 1.5 1.5V20L12 16.6 6.5 20V5.5Z" />
+    </svg>
+  );
+}
+
+export function VoiceIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3.5a2.75 2.75 0 0 1 2.75 2.75v5.5a2.75 2.75 0 1 1-5.5 0v-5.5A2.75 2.75 0 0 1 12 3.5Z" />
+      <path d="M5.5 11.5v.5a6.5 6.5 0 0 0 13 0v-.5M12 18.5V21" />
+    </svg>
+  );
+}
+
 export function SpinnerIcon({ className = "", ...props }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={`animate-spin ${className}`} aria-hidden {...props}>
